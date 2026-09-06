@@ -21,6 +21,13 @@ See [RELEASING.md](RELEASING.md) for the full walkthrough. Short version:
    there: builds, tests, packages with Velopack (`vpk`), and publishes a GitHub Release that the
    app's self-updater checks against.
 
+## [1.1.3] - 2026-09-06
+
+### Fixed
+
+- Fixed a startup crash in the `1.1.2` release caused by the application icon's invalid WPF image
+  format. The icon is now embedded as a correctly sized 256px ICO resource.
+
 ## [1.1.2] - 2026-09-06
 
 ### Added

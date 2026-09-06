@@ -26,7 +26,7 @@
         MINOR - new user-facing feature, backward compatible.
         PATCH - bug fix only, no new feature/behavior.
     -->
-    <Version>1.1.2</Version>
+    <Version>1.1.3</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,6 +43,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\FSModManager.ico" />
     <None Include="changelog.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
