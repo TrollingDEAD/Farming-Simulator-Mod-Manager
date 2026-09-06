@@ -21,6 +21,13 @@ See [RELEASING.md](RELEASING.md) for the full walkthrough. Short version:
    there: builds, tests, packages with Velopack (`vpk`), and publishes a GitHub Release that the
    app's self-updater checks against.
 
+## [1.1.2] - 2026-09-06
+
+### Added
+
+- A Farming Simulator-themed application icon, used consistently by the Windows executable,
+  main window, and Velopack installer package.
+
 ## [1.1.1] - 2026-09-06
 
 ### Fixed

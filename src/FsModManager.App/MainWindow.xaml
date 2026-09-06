@@ -7,6 +7,7 @@
         xmlns:vm="clr-namespace:FsModManager.App.ViewModels"
         xmlns:views="clr-namespace:FsModManager.App.Views"
         Title="FS Mod Manager"
+        Icon="Assets/FSModManager.ico"
         Width="1100" Height="700"
         MinWidth="860" MinHeight="540"
         WindowStyle="None"

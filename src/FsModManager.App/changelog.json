@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.1.2",
+    "date": "2026-09-06",
+    "entries": [
+      "Added: Farming Simulator-themed application icon for the Windows executable, main window, and Velopack installer package."
+    ]
+  },
+  {
     "version": "1.1.1",
     "date": "2026-09-06",
     "entries": [

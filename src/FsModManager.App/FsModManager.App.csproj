@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>FsModManager.App</RootNamespace>
     <AssemblyName>FsModManager.App</AssemblyName>
-    <ApplicationIcon />
+    <ApplicationIcon>Assets\FSModManager.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
     <!--
@@ -26,7 +26,7 @@
         MINOR - new user-facing feature, backward compatible.
         PATCH - bug fix only, no new feature/behavior.
     -->
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
   </PropertyGroup>
 
   <ItemGroup>

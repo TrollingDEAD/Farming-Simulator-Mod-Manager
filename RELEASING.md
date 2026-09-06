@@ -31,6 +31,9 @@ That's it — pushing the tag triggers the release workflow, which:
 - Packages it into a Velopack release with `vpk pack`.
 - Uploads it to this repo's GitHub Releases with `vpk upload github`, using the automatically
   provided `GITHUB_TOKEN` (no extra secret to configure).
+- Uses `src/FsModManager.App/Assets/FSModManager.ico` for both the Windows executable and the
+  Velopack package. Keep that generated ICO in sync with the editable
+  `src/FsModManager.App/Assets/FSModManagerIcon.png` artwork when replacing the app icon.
 - Marks the release as a prerelease automatically if the tag name contains a `-` (e.g.
   `v1.2.0-beta`), otherwise publishes it as a full release.
 - Prints the release URL in the workflow's job summary so you can quickly verify it.

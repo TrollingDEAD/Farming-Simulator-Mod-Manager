@@ -15,6 +15,7 @@ env:
   PACK_ID: FsModManager
   MAIN_EXE: FsModManager.App.exe
   CSPROJ_PATH: src/FsModManager.App/FsModManager.App.csproj
+  ICON_PATH: src/FsModManager.App/Assets/FSModManager.ico
 
 permissions:
   contents: write
@@ -72,6 +73,7 @@ jobs:
             --packVersion "${{ steps.version.outputs.version }}" \
             --packDir publish \
             --mainExe "$MAIN_EXE" \
+            --icon "$ICON_PATH" \
             --packTitle "FS Mod Manager"
 
       - name: Upload release to GitHub
