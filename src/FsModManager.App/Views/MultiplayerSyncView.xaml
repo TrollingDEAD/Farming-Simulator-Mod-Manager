@@ -1,0 +1,386 @@
+<UserControl x:Class="FsModManager.App.Views.MultiplayerSyncView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- One entry row (missing/extra lists): title + internal name, version + size right. -->
+        <DataTemplate x:Key="MissingEntryRowTemplate">
+            <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="4" Background="{StaticResource LikelyRowBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding InternalModName}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="12,0,0,0">
+                        <TextBlock Text="{Binding VersionDisplay}" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding FileSizeDisplay}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Same row shape, neutral tint: "extra on my side" is informational, not a problem. -->
+        <DataTemplate x:Key="ExtraEntryRowTemplate">
+            <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="4" Background="{StaticResource SurfaceBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding InternalModName}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="12,0,0,0">
+                        <TextBlock Text="{Binding VersionDisplay}" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding FileSizeDisplay}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Version mismatch row: "mine vX -> theirs vY". -->
+        <DataTemplate x:Key="VersionMismatchRowTemplate">
+            <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="4" Background="{StaticResource PossibleRowBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding InternalModName}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <Run Text="mine " />
+                        <Run Text="{Binding MyVersionDisplay, Mode=OneWay}" FontWeight="SemiBold" />
+                        <Run Text="  &#x2192;  theirs " />
+                        <Run Text="{Binding TheirVersionDisplay, Mode=OneWay}" FontWeight="SemiBold" />
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Same-version-different-content row: both say the same version, hashes disagree. -->
+        <DataTemplate x:Key="HashMismatchRowTemplate">
+            <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="4" Background="{StaticResource CriticalRowBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding InternalModName}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="12,0,0,0">
+                        <TextBlock Text="{Binding VersionDisplay}" HorizontalAlignment="Right" />
+                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,2,0,0">
+                            <Run Text="mine " />
+                            <Run Text="{Binding MyShortHash, Mode=OneWay}" />
+                            <Run Text=" · theirs " />
+                            <Run Text="{Binding TheirShortHash, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,4" />
+        </Style>
+
+        <Style x:Key="SectionCaptionStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="0" Margin="0,0,0,4">
+            <TextBlock Text="Multiplayer Sync" FontSize="24" FontWeight="SemiBold" />
+            <Button Content="Refresh savegames"
+                    Command="{Binding RefreshSavegamesCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top" />
+        </Grid>
+
+        <!-- What this feature is for (always visible — it's a specific use case that
+             benefits from the one-line explanation). -->
+        <TextBlock Grid.Row="1"
+                   Margin="0,0,0,12"
+                   TextWrapping="Wrap"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Text="Get a group's mod lists to match before playing multiplayer together: export a manifest of your mods (name + version + a content hash per file), send it to a friend or server host, and compare theirs against yours to see exactly what's missing or different." />
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 1: your manifest -->
+            <Border Grid.Column="0"
+                    Padding="14,12"
+                    Margin="0,0,6,12"
+                    CornerRadius="6"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="1 · Your manifest" FontWeight="SemiBold" FontSize="14" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Contents:" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <ComboBox ItemsSource="{Binding Savegames}"
+                                  SelectedItem="{Binding SelectedSavegame}"
+                                  MinWidth="200"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center">
+                            <ComboBox.Style>
+                                <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IncludeAllMods}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ComboBox.Style>
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontWeight="SemiBold">
+                                            <Run Text="Mods active in " />
+                                            <Run Text="{Binding DisplayName, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <CheckBox Content="All mods in the mods folder"
+                                  IsChecked="{Binding IncludeAllMods}"
+                                  VerticalAlignment="Center"
+                                  Margin="14,0,0,0" />
+                    </StackPanel>
+
+                    <TextBlock Text="No savegames found — the 'all mods' option still works."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,6,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSavegames}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Label (optional):" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBox Text="{Binding ManifestLabel, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="240"
+                                 HorizontalAlignment="Left"
+                                 Tag="e.g. Sunday Co-op Farm" />
+                    </StackPanel>
+
+                    <Button Content="Export manifest…"
+                            Command="{Binding ExportManifestCommand}"
+                            HorizontalAlignment="Left"
+                            Margin="0,12,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- 2: compare -->
+            <Border Grid.Column="1"
+                    Padding="14,12"
+                    Margin="6,0,0,12"
+                    CornerRadius="6"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="2 · Compare" FontWeight="SemiBold" FontSize="14" />
+                    <TextBlock Text="Pick a manifest file — one a friend or server host sent you, or an older export of your own — and compare it against your current mods."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Margin="0,6,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="Compare against a file…"
+                                Command="{Binding CompareCommand}" />
+                        <Button Content="Copy results"
+                                Command="{Binding CopyResultsCommand}"
+                                Margin="10,0,0,0"
+                                Visibility="{Binding HasCompared, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding ComparedAgainstText}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0"
+                               Visibility="{Binding HasCompared, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <ProgressBar Grid.Row="2"
+                     IsIndeterminate="True"
+                     Height="3"
+                     VerticalAlignment="Bottom"
+                     Margin="0,0,0,4"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+
+        <!-- Results area: three exclusive states (prompt / all-match / diff), so the user can
+             always tell "nothing happened yet" apart from "ran, and everything matched". -->
+        <Grid Grid.Row="3">
+            <!-- First-use prompt -->
+            <Border Padding="32"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    HorizontalAlignment="Left"
+                    Visibility="{Binding ShowComparePrompt, Converter={StaticResource BoolToVis}}">
+                <TextBlock Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" MaxWidth="560">
+                    No comparison yet. Export your manifest on the left and send it to whoever you're playing with;
+                    then compare the manifest they send back (or your dedicated server's) to see exactly which mods
+                    are missing, extra, or mismatched — before the game does it for you at join time.
+                </TextBlock>
+            </Border>
+
+            <!-- All match -->
+            <Border Padding="24"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    HorizontalAlignment="Left"
+                    Visibility="{Binding ShowAllMatchState, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE73E;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="28"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource AccentBrush}" />
+                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Mod lists match" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SummaryText}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="560"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Diff results -->
+            <ScrollViewer Visibility="{Binding ShowResults, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <Border Padding="10,8"
+                            Margin="0,0,0,4"
+                            CornerRadius="4"
+                            Background="{StaticResource ControlBrush}">
+                        <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" />
+                    </Border>
+
+                    <!-- Missing on your side -->
+                    <StackPanel Visibility="{Binding HasMissingOnMine, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Style="{StaticResource SectionHeaderStyle}" Foreground="{StaticResource LikelyBrush}">
+                            <Run Text="Missing on your side (" />
+                            <Run Text="{Binding MissingOnMine.Count, Mode=OneWay}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource SectionCaptionStyle}"
+                                   Text="These are on the other list but not yours. Track them down and install them manually — the manifest deliberately contains no download links." />
+                        <ItemsControl ItemsSource="{Binding MissingOnMine}" ItemTemplate="{StaticResource MissingEntryRowTemplate}" />
+                    </StackPanel>
+
+                    <!-- Extra on your side -->
+                    <StackPanel Visibility="{Binding HasExtraOnMine, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Style="{StaticResource SectionHeaderStyle}" Foreground="{StaticResource TextSecondaryBrush}">
+                            <Run Text="Extra on your side (" />
+                            <Run Text="{Binding ExtraOnMine.Count, Mode=OneWay}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource SectionCaptionStyle}"
+                                   Text="You have these but the other side doesn't. Usually harmless — unless the server requires an exact match, in which case remove or deactivate them for the session." />
+                        <ItemsControl ItemsSource="{Binding ExtraOnMine}" ItemTemplate="{StaticResource ExtraEntryRowTemplate}" />
+                    </StackPanel>
+
+                    <!-- Version mismatches -->
+                    <StackPanel Visibility="{Binding HasVersionMismatches, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Style="{StaticResource SectionHeaderStyle}" Foreground="{StaticResource PossibleBrush}">
+                            <Run Text="Version mismatches (" />
+                            <Run Text="{Binding VersionMismatches.Count, Mode=OneWay}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource SectionCaptionStyle}"
+                                   Text="Same mod, different version numbers — whoever is behind should update to the other's version." />
+                        <ItemsControl ItemsSource="{Binding VersionMismatches}" ItemTemplate="{StaticResource VersionMismatchRowTemplate}" />
+                    </StackPanel>
+
+                    <!-- Same version, different content -->
+                    <StackPanel Visibility="{Binding HasHashMismatches, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Style="{StaticResource SectionHeaderStyle}" Foreground="{StaticResource CriticalBrush}">
+                            <Run Text="Same version, different content (" />
+                            <Run Text="{Binding HashMismatches.Count, Mode=OneWay}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource SectionCaptionStyle}"
+                                   Text="Both sides claim the SAME version number but the actual files differ — a mod was silently re-released. Safest fix: both of you delete it and re-download a fresh copy." />
+                        <ItemsControl ItemsSource="{Binding HashMismatches}" ItemTemplate="{StaticResource HashMismatchRowTemplate}" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding MatchingCountText}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,16,0,0" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

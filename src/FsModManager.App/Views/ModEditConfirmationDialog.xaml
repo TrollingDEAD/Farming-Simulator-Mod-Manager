@@ -1,0 +1,145 @@
+<Window x:Class="FsModManager.App.Views.ModEditConfirmationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Confirm Mod File Modification"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        SizeToContent="Height"
+        Width="500"
+        Background="{StaticResource SurfaceBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        BorderBrush="{StaticResource BorderBrush}"
+        BorderThickness="1"
+        ShowInTaskbar="False">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header with icon -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       FontFamily="Segoe MDL2 Assets"
+                       Text="&#xE70F;"
+                       FontSize="22"
+                       Foreground="{StaticResource AccentBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,12,0" />
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="Mod File Modification"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="A safe edit will be applied to the target mod archive."
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Target Mod File Box -->
+        <Border Grid.Row="1"
+                Background="{StaticResource ControlBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="12,10"
+                Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="Target Mod:"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,0,10,0" />
+
+                <TextBlock x:Name="ModFileText"
+                           Grid.Column="1"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </Border>
+
+        <!-- Change Description Box -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,14">
+            <TextBlock Text="Proposed Change:"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Margin="0,0,0,4" />
+            <TextBlock x:Name="ChangeDescriptionText"
+                       TextWrapping="Wrap"
+                       FontSize="12"
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+        </StackPanel>
+
+        <!-- Automatic Backup & Safety Notice -->
+        <Border Grid.Row="3"
+                Background="{StaticResource InfoBannerBrush}"
+                BorderBrush="{StaticResource AccentBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="12,10"
+                Margin="0,0,0,18">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           FontFamily="Segoe MDL2 Assets"
+                           Text="&#xE72D;"
+                           FontSize="18"
+                           Foreground="{StaticResource AccentBrush}"
+                           VerticalAlignment="Top"
+                           Margin="0,2,10,0" />
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="Automatic Safety Backup"
+                               FontWeight="SemiBold"
+                               FontSize="12"
+                               Foreground="{StaticResource AccentBrush}" />
+                    <TextBlock Text="A full timestamped backup copy of this mod will be created before any changes are made. Backups are stored in:"
+                               FontSize="11"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,2,0,2" />
+                    <TextBlock x:Name="BackupLocationText"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Dialog Buttons -->
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button x:Name="CancelButton"
+                    Content="Cancel"
+                    MinWidth="90"
+                    Margin="0,0,8,0"
+                    Click="OnCancelClick" />
+            <Button x:Name="ConfirmButton"
+                    Content="Apply Fix"
+                    Style="{StaticResource AccentButtonStyle}"
+                    MinWidth="100"
+                    Click="OnConfirmClick" />
+        </StackPanel>
+    </Grid>
+</Window>

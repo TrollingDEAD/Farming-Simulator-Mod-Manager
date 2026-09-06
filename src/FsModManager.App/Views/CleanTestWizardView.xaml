@@ -1,0 +1,196 @@
+<UserControl x:Class="FsModManager.App.Views.CleanTestWizardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:FsModManager.App.ViewModels">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <Style x:Key="StepCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+            <Setter Property="Visibility" Value="Collapsed" />
+        </Style>
+
+        <Style x:Key="IntroCardStyle" TargetType="Border" BasedOn="{StaticResource StepCardStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Step}" Value="{x:Static vm:CleanTestWizardStep.Intro}">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ActiveCardStyle" TargetType="Border" BasedOn="{StaticResource StepCardStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Step}" Value="{x:Static vm:CleanTestWizardStep.Active}">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ConfirmedCauseCardStyle" TargetType="Border" BasedOn="{StaticResource StepCardStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Step}" Value="{x:Static vm:CleanTestWizardStep.ConfirmedModCause}">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="NotModIssueCardStyle" TargetType="Border" BasedOn="{StaticResource StepCardStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Step}" Value="{x:Static vm:CleanTestWizardStep.NotModIssue}">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="BisectionCardStyle" TargetType="Border" BasedOn="{StaticResource StepCardStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Step}" Value="{x:Static vm:CleanTestWizardStep.Bisection}">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="BisectionCompleteCardStyle" TargetType="Border" BasedOn="{StaticResource StepCardStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Step}" Value="{x:Static vm:CleanTestWizardStep.BisectionComplete}">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="720" HorizontalAlignment="Left">
+            <TextBlock Text="Troubleshoot: Clean Test" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <TextBlock Text="Temporarily move mods out of the way to isolate whether a problem is caused by mods at all — nothing is ever deleted, and everything is restored when you're done."
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,16" />
+
+            <!-- Step 1: Intro / confirmation -->
+            <Border Style="{StaticResource IntroCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Step 1 · What's about to happen" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                        <Run Text="• All of your mods will be MOVED (not deleted) out of the mods folder into a holding folder next to it, so the game sees an empty mods folder on next launch." />
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                        <Run Text="• Nothing is ever deleted by this feature — your mod collection is fully recoverable at any point, including if the app is closed unexpectedly while a test is active." />
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                        <Run Text="• Test with a NEW save, not an existing one — an existing save may still reference mod data and give a misleading result." />
+                    </TextBlock>
+                    <CheckBox Content="Also clear the shader cache (a separate real fix for some crash/stutter issues — it's regenerated automatically by the game)"
+                              IsChecked="{Binding ClearShaderCache}"
+                              Margin="0,10,0,14" />
+                    <Button Content="I understand — move mods out now"
+                            Command="{Binding BeginCleanTestCommand}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Step 2/3: Active test in progress -->
+            <Border Style="{StaticResource ActiveCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Step 2 · Test now" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="Mods are moved out. Launch the game and test with a NEW save. When you're done testing, come back here." />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="Launch Game" Command="{Binding LaunchGameCommand}" Margin="0,0,10,0" />
+                        <Button Content="I've tested it" Command="{Binding IveTestedItCommand}" />
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding IsAwaitingTestResult, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Did the problem still happen with mods removed?" FontWeight="SemiBold" Margin="0,10,0,10" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="No — problem is gone" Command="{Binding ReportProblemGoneCommand}" Margin="0,0,10,0" />
+                            <Button Content="Yes — problem still happened" Command="{Binding ReportProblemPersistsCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Mods confirmed as the cause -->
+            <Border Style="{StaticResource ConfirmedCauseCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Mods confirmed as the cause" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,14"
+                               Text="The problem went away with mods removed, so a mod is very likely responsible. You can narrow it down to the specific mod using a bisection process (roughly log2(N) rounds instead of testing every mod one by one), or just restore everything and investigate manually." />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Start bisection (find the exact mod)" Command="{Binding StartBisectionCommand}" Margin="0,0,10,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Not a mod issue -->
+            <Border Style="{StaticResource NotModIssueCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="This is very likely NOT a mod issue" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,14"
+                               Text="The problem still happened even with mods removed. This points at something other than mods — commonly a graphics/driver problem. If you have a log from this session, check the Log Analyzer's 'Not mod-related' section for graphics/driver errors." />
+                    <Button Content="Open Log Analyzer" Command="{Binding GoToLogAnalyzerCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Bisection round -->
+            <Border Style="{StaticResource BisectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Bisection in progress" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,6" />
+                    <TextBlock Text="{Binding RoundProgressText}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="This round's mods have been moved back in alongside the mods already confirmed good. Test with a NEW save again." />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="Launch Game" Command="{Binding LaunchGameCommand}" Margin="0,0,10,0" />
+                        <Button Content="I've tested it" Command="{Binding IveTestedItCommand}" />
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding IsAwaitingTestResult, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Did the problem happen this round?" FontWeight="SemiBold" Margin="0,10,0,10" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="No — this round is clean" Command="{Binding ReportProblemGoneCommand}" Margin="0,0,10,0" />
+                            <Button Content="Yes — problem happened" Command="{Binding ReportProblemPersistsCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Bisection complete -->
+            <Border Style="{StaticResource BisectionCompleteCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Bisection complete" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,6" />
+                    <TextBlock Text="{Binding RoundProgressText}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding SuspectNames}" Margin="0,0,0,10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontWeight="SemiBold" Margin="0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Escape hatch: always visible whenever a session is active -->
+            <Border Visibility="{Binding ShowExitEscapeHatch, Converter={StaticResource BoolToVis}}"
+                    Background="{StaticResource WarningBannerBrush}"
+                    BorderBrush="{StaticResource LikelyBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16"
+                    Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="Want to stop here?" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="You can exit clean test mode and restore everything at any point, no matter which step you're on." />
+                    <Button Content="Exit clean test mode now and restore everything"
+                            Command="{Binding RestoreNowCommand}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

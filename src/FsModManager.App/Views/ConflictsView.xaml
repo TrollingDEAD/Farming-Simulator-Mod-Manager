@@ -1,0 +1,223 @@
+<UserControl x:Class="FsModManager.App.Views.ConflictsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:FsModManager.Core.Models;assembly=FsModManager.Core"
+             xmlns:converters="clr-namespace:FsModManager.App.Converters">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVis" />
+
+        <!-- One conflict row: the two mods, the description, a "go to mod" action, and either a Fix
+             action (mechanically auto-resolvable conflicts) or an expandable "why not" note. Left-
+             border accent + background tint mirror the severity tinting used for mod/object rows
+             in the main mod list. -->
+        <DataTemplate x:Key="ConflictRowTemplate">
+            <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="4" BorderThickness="3,0,0,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Severity}" Value="{x:Static models:ConflictSeverity.Possible}">
+                                <Setter Property="Background" Value="{StaticResource PossibleRowBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource PossibleBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="{x:Static models:ConflictSeverity.Likely}">
+                                <Setter Property="Background" Value="{StaticResource LikelyRowBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource LikelyBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="{x:Static models:ConflictSeverity.Critical}">
+                                <Setter Property="Background" Value="{StaticResource CriticalRowBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource CriticalBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock FontWeight="SemiBold" TextWrapping="Wrap">
+                                <Run Text="{Binding ModA, Mode=OneWay}" />
+                                <Run Text=" ↔ " />
+                                <Run Text="{Binding ModB, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Text="{Binding Description}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <Button Grid.Column="1"
+                                Content="Show in mod list"
+                                VerticalAlignment="Top"
+                                Margin="12,0,0,0"
+                                Command="{Binding GoToModsCommand}" />
+
+                        <!-- Fix action — only shown for the two mechanically-fixable conflict types. -->
+                        <Button Grid.Column="2"
+                                Content="Fix"
+                                VerticalAlignment="Top"
+                                Margin="8,0,0,0"
+                                Background="{StaticResource AccentBrush}"
+                                Visibility="{Binding CanShowFixButton, Converter={StaticResource BoolToVis}}"
+                                Command="{Binding FixCommand}" />
+                    </Grid>
+
+                    <!-- Not auto-fixable: an expandable explanation instead of a Fix button. -->
+                    <StackPanel Visibility="{Binding HasNotFixableReason, Converter={StaticResource BoolToVis}}"
+                                Margin="0,8,0,0">
+                        <ToggleButton Content="Why can't this be fixed automatically?"
+                                      HorizontalAlignment="Left"
+                                      IsChecked="{Binding IsReasonExpanded, Mode=OneWay}"
+                                      Command="{Binding ToggleReasonExpandedCommand}" />
+                        <Border Visibility="{Binding IsReasonExpanded, Converter={StaticResource BoolToVis}}"
+                                Background="{StaticResource ControlBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10,8"
+                                Margin="0,6,0,0">
+                            <TextBlock Text="{Binding NotFixableReason}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+
+        <!-- One severity section: header + count, hidden entirely when empty. -->
+        <Style x:Key="SeveritySectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,8" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Conflicts" FontSize="24" FontWeight="SemiBold" />
+            <Button Content="Rescan"
+                    Command="{Binding RescanCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top" />
+        </Grid>
+
+        <!-- Search box: same style/placeholder pattern as the mod list's search box. -->
+        <Border Grid.Row="1"
+                Width="260"
+                Height="34"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,12"
+                BorderThickness="1"
+                CornerRadius="4">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{StaticResource ControlBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=SearchTextBox}" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="&#xE721;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="10,0,0,0" />
+
+                <TextBox x:Name="SearchTextBox"
+                         Grid.Column="1"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Tag="Search by mod name or keyword…"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="6,0"
+                         VerticalContentAlignment="Center" />
+
+                <Button Grid.Column="2"
+                        Content="&#xE711;"
+                        FontSize="9"
+                        Width="22"
+                        Height="22"
+                        Margin="0,0,4,0"
+                        Style="{StaticResource IconButtonStyle}"
+                        Command="{Binding ClearSearchCommand}"
+                        ToolTip="Clear search"
+                        Visibility="{Binding SearchText, Converter={StaticResource EmptyStringToVis}}" />
+            </Grid>
+        </Border>
+
+        <!-- Summary count, always visible at a glance regardless of whether the list below is scrolled. -->
+        <Border Grid.Row="2"
+                Padding="12,10"
+                Margin="0,0,0,14"
+                CornerRadius="4"
+                Background="{StaticResource ControlBrush}">
+            <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" />
+        </Border>
+
+        <Grid Grid.Row="3">
+            <!-- Positive empty state — never left as a blank list that looks broken. -->
+            <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="&#xE73E;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="32"
+                           HorizontalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding EmptyStateText}"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="0,8,0,0"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <ScrollViewer Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Visibility="{Binding HasCriticalConflicts, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Critical" Style="{StaticResource SeveritySectionHeaderStyle}" Foreground="{StaticResource CriticalBrush}" />
+                        <ItemsControl ItemsSource="{Binding CriticalConflicts}" ItemTemplate="{StaticResource ConflictRowTemplate}" />
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding HasLikelyConflicts, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Likely" Style="{StaticResource SeveritySectionHeaderStyle}" Foreground="{StaticResource LikelyBrush}" />
+                        <ItemsControl ItemsSource="{Binding LikelyConflicts}" ItemTemplate="{StaticResource ConflictRowTemplate}" />
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding HasPossibleConflicts, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Possible" Style="{StaticResource SeveritySectionHeaderStyle}" Foreground="{StaticResource PossibleBrush}" />
+                        <ItemsControl ItemsSource="{Binding PossibleConflicts}" ItemTemplate="{StaticResource ConflictRowTemplate}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

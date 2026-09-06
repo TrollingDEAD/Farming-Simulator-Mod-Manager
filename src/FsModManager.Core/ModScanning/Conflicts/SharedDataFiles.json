@@ -1,0 +1,10 @@
+[
+  {
+    "FileName": "fillTypes.xml",
+    "Description": "fruit/crop type definitions"
+  },
+  {
+    "FileName": "densityHeights.xml",
+    "Description": "terrain/bulk material registration"
+  }
+]

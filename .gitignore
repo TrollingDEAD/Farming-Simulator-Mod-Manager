@@ -1,0 +1,25 @@
+## .NET
+bin/
+obj/
+*.user
+
+## Visual Studio
+.vs/
+
+## Rider
+.idea/
+
+## VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+## App data
+*.db
+*.db-shm
+*.db-wal
+
+## Local debug output dumps
+apperr.txt
+appout.txt

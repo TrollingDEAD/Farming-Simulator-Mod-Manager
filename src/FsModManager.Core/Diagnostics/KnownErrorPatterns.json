@@ -1,0 +1,80 @@
+[
+  {
+    "Id": "specialization-collision",
+    "Pattern": "specialization\\s+'(?<name>[^']+)'\\s+could not be added because variable\\s+'spec_\\k<name>'\\s+already exists",
+    "Category": "SpecializationCollision",
+    "Explanation": "Duplicate vehicle specialization name conflict: two installed mods both declare a specialization named '{name}', so FS25 rejected the second one at load time."
+  },
+  {
+    "Id": "missing-xml-file",
+    "Pattern": "Failed to open xml file '(?<path>[^']+)'",
+    "Category": "MissingFileReference",
+    "Explanation": "Broken/missing file reference: the game tried to load '{path}' and couldn't. This usually means a corrupted mod zip, or a mod referencing a file that isn't actually included in its own package."
+  },
+  {
+    "Id": "missing-storeitem",
+    "Pattern": "Unable to find vehicle storeitem for '(?<path>[^']+)'",
+    "Category": "MissingFileReference",
+    "Explanation": "Broken/missing file reference: the game couldn't find the vehicle storeItem '{path}'. This usually means a corrupted mod zip, or a mod referencing a file that isn't actually included in its own package."
+  },
+  {
+    "Id": "texture-array-layer",
+    "Pattern": "Texture array layer '[^']*' couldn't be loaded",
+    "Category": "TextureFillTypeIssue",
+    "Explanation": "Texture/fillType conflict: a texture array layer couldn't be loaded. This usually means two mods disagree about a shared fillTypes.xml or texture array definition."
+  },
+  {
+    "Id": "manager-unavailable",
+    "Pattern": "is not available anymore",
+    "Category": "ManagerUnavailable",
+    "Explanation": "A game system was referenced after it was no longer available. This often happens when a mod references game state before it's initialized, or when a mod that's since been removed is still referenced somewhere (e.g. in a savegame). The exact cause varies case by case."
+  },
+  {
+    "Id": "graphics-allocation",
+    "Pattern": "failed to create placed resource|BufferAllocation|ImageAllocation",
+    "Category": "GraphicsUnrelated",
+    "Explanation": "This is a graphics/VRAM allocation error, not a mod issue. It usually points to a GPU driver or VRAM problem - removing mods is very unlikely to fix it."
+  },
+  {
+    "Id": "duplicate-l10n-entry",
+    "Pattern": "Duplicate l10n entry\\s+'(?<key>[^']+)'\\s+in mod\\s+'(?<mod>[^']+)'",
+    "Category": "DuplicateL10nEntry",
+    "Fixability": "Safe",
+    "Explanation": "This mod defines the translation key '{key}' more than once in its own files - the game ignores the duplicate, so this is harmless but indicates a small bug in the mod's l10n file."
+  },
+  {
+    "Id": "missing-l10n-entry",
+    "Pattern": "Missing l10n\\s+'(?<key>[^']+)'\\s+in mod\\s+'(?<mod>[^']+)'",
+    "Category": "MissingL10nEntry",
+    "Fixability": "Partial",
+    "Explanation": "This mod references a translation key that doesn't exist in its own language files - likely shows a raw key name instead of readable text somewhere in-game. The optional fix adds a rough placeholder label, not the mod author's intended text - good enough to stop the warning, but consider it temporary."
+  },
+  {
+    "Id": "text-parameter-count-mismatch",
+    "Pattern": "(?<path>(?<!:)(?:[A-Za-z]:)?[^:\\r\\n]*?\\.xml)\\s*:\\s*Unable to insert parameters into text\\. Invalid number of params\\.\\s*\\((?<found>\\d+) found in string\\s+'(?<template>[^']*)',\\s*(?<expected>\\d+) params given in '(?<textKey>[^']+)'\\)",
+    "Category": "TextParameterCountMismatch",
+    "Fixability": "SuggestOnly",
+    "Explanation": "A text template in this mod expects a different number of parameters than it's being given - likely shows broken or missing text for a vehicle configuration option in-game. Template '{template}' found {found} parameter(s), but {expected} were given for '{textKey}'. Fixing this requires knowing what value the mod author intended to show; the log alone doesn't reveal that. Check '{path}' and the raw log line for manual investigation."
+  },
+  {
+    "Id": "missing-gui-profile",
+    "Pattern": "Could not retrieve GUI profile\\s+'(?<profile>[^']+)'\\. Using base reference profile instead",
+    "Category": "MissingGuiProfile",
+    "Fixability": "NotFixable",
+    "Explanation": "A UI style reference is missing; the game falls back to a default style automatically. Cosmetic only, no functional impact."
+  },
+  {
+    "Id": "field-geometry-issue",
+    "Pattern": "\\[ERROR\\]\\s*[^:]+:\\s*First headland intersects field boundary!",
+    "Category": "FieldGeometryIssue",
+    "Fixability": "NotModFileFixable",
+    "Explanation": "This is a map/field-data geometry issue, not something fixable by editing a mod's XML values - it would need to be corrected in a map editor. If this map came from a mod, consider reporting it to that mod's author."
+  },
+  {
+    "Id": "performance-memory-pressure",
+    "Pattern": "Performing emergency garbage collection pass\\s*-\\s*memory went from\\s+(?<before>\\d+) KB to (?<after>\\d+) KB in less than one frame",
+    "Category": "PerformanceMemoryPressure",
+    "Fixability": "NotModFileFixable",
+    "Explanation": "The game had to free memory urgently, often caused by loading many large assets at once (e.g. a big map or many high-resolution mods). Not something editable in a specific mod's files - if this happens often, consider whether your mod count/quality settings are appropriate for your system."
+  }
+]

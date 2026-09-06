@@ -1,0 +1,19 @@
+<UserControl x:Class="FsModManager.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="8" MaxWidth="500" HorizontalAlignment="Left">
+        <TextBlock Text="Mods Folder Path" FontWeight="Bold" />
+        <TextBox Text="{Binding ModsFolderPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+
+        <TextBlock Text="Check for Updates Interval (hours)" FontWeight="Bold" />
+        <TextBox Text="{Binding CheckForUpdatesIntervalHours, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+
+        <TextBlock Text="Savegame Backups — automatic snapshots kept per save" FontWeight="Bold" Margin="0,8,0,0" />
+        <TextBox Text="{Binding AutomaticSnapshotKeepCount, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                   FontSize="11"
+                   TextWrapping="Wrap">
+            A full savegame snapshot is taken before every load-order save. Older automatic snapshots beyond this count are deleted; backups you create manually are always kept.
+        </TextBlock>
+    </StackPanel>
+</UserControl>

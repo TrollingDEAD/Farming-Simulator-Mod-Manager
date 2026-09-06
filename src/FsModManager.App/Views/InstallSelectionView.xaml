@@ -1,0 +1,114 @@
+<UserControl x:Class="FsModManager.App.Views.InstallSelectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header (width-capped for readability; the list/footer below stretch full width) -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16" MaxWidth="720" HorizontalAlignment="Left">
+            <TextBlock Text="Game Installation" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock Text="Pick the Farming Simulator 25 installation to manage."
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- Detecting indicator -->
+        <StackPanel Grid.Row="1"
+                    Margin="0,0,0,12"
+                    MaxWidth="720"
+                    HorizontalAlignment="Left"
+                    Visibility="{Binding IsDetecting, Converter={StaticResource BoolToVis}}">
+            <ProgressBar IsIndeterminate="True" />
+            <TextBlock Text="Detecting installations (Steam / Epic / GOG)…"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,6,0,0" />
+        </StackPanel>
+
+        <!-- Empty state -->
+        <Border Grid.Row="2"
+                Padding="32"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                MaxWidth="720"
+                HorizontalAlignment="Left"
+                Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock Text="No installation detected"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="Farming Simulator 25 wasn't found via Steam, Epic, or GOG. If it's installed through another launcher, browse to the folder that contains FarmingSimulator2025.exe."
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,16" />
+                <Button Content="Browse manually…"
+                        Command="{Binding BrowseManuallyCommand}"
+                        HorizontalAlignment="Left" />
+            </StackPanel>
+        </Border>
+
+        <!-- Detected installations: full width so the panel actually fills a maximized window -->
+        <ListBox Grid.Row="2"
+                 ItemsSource="{Binding Installations}"
+                 SelectedItem="{Binding SelectedInstallation}"
+                 Visibility="{Binding ShowInstallations, Converter={StaticResource BoolToVis}}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding InstallDirectory}">
+                                <Run Text="{Binding Source}" />
+                                <Run Text="—" />
+                                <Run Text="{Binding Version, StringFormat='v{0}'}" />
+                            </TextBlock>
+                            <TextBlock Text="{Binding InstallDirectory}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       Margin="0,2,0,0"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding InstallDirectory}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding ExecutablePath}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   VerticalAlignment="Center"
+                                   Margin="16,0,0,0"
+                                   MaxWidth="320"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding ExecutablePath}" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Footer actions -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Left">
+            <Button Content="Detect again"
+                    Command="{Binding DetectCommand}"
+                    Margin="0,0,8,0" />
+            <Button Content="Browse manually…"
+                    Command="{Binding BrowseManuallyCommand}"
+                    Margin="0,0,8,0" />
+            <Button Content="Use this installation →"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Command="{Binding ConfirmCommand}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

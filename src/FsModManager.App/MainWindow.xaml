@@ -1,0 +1,183 @@
+<Window x:Class="FsModManager.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:controls="clr-namespace:FsModManager.App.Controls"
+        xmlns:services="clr-namespace:FsModManager.App.Services"
+        xmlns:vm="clr-namespace:FsModManager.App.ViewModels"
+        xmlns:views="clr-namespace:FsModManager.App.Views"
+        Title="FS Mod Manager"
+        Width="1100" Height="700"
+        MinWidth="860" MinHeight="540"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="{StaticResource BackgroundBrush}">
+
+    <!-- Borderless window with real chrome behavior: invisible 6px resize border on all
+         edges/corners, and a 40px caption region at the top (drag + double-click maximize)
+         that matches the custom TitleBar's height. -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome ResizeBorderThickness="6"
+                            CaptionHeight="40"
+                            CornerRadius="0"
+                            GlassFrameThickness="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <DataTemplate DataType="{x:Type vm:InstallSelectionViewModel}">
+            <views:InstallSelectionView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ModListViewModel}">
+            <views:ModListView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:LoadOrderViewModel}">
+            <views:LoadOrderView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MultiplayerSyncViewModel}">
+            <views:MultiplayerSyncView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ConflictsViewModel}">
+            <views:ConflictsView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:LogAnalyzerViewModel}">
+            <views:LogAnalyzerView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DiagnosticsViewModel}">
+            <views:DiagnosticsView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CleanTestWizardViewModel}">
+            <views:CleanTestWizardView />
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <controls:TitleBar Grid.Row="0" />
+
+            <!-- Dismissible notification banners -->
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Notifications}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="12,10"
+                                Margin="0,0,0,1"
+                                Background="{StaticResource SurfaceBrush}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{StaticResource InfoBannerBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Kind}" Value="{x:Static services:NotificationKind.Warning}">
+                                            <Setter Property="Background" Value="{StaticResource WarningBannerBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Kind}" Value="{x:Static services:NotificationKind.Error}">
+                                            <Setter Property="Background" Value="{StaticResource ErrorBannerBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <TextBlock Text="{Binding Message}"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,30,0" />
+                                <Button Content="&#xE8BB;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="10"
+                                        Padding="6,4"
+                                        MinHeight="0"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        ToolTip="Dismiss"
+                                        Command="{Binding DataContext.DismissNotificationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Sidebar navigation -->
+                <Border Grid.Column="0"
+                        Background="{StaticResource SidebarBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="0,0,1,0">
+                    <Grid>
+                        <StackPanel Grid.Row="0" Margin="0,8,0,0">
+                            <RadioButton Content="Installation"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsInstallSelectionActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.InstallSelection}" />
+                            <RadioButton Content="Mods"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsModListActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.ModList}" />
+                            <RadioButton Content="Load Order"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsLoadOrderActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.LoadOrder}" />
+                            <RadioButton Content="Multiplayer Sync"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsMultiplayerSyncActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.MultiplayerSync}" />
+                            <RadioButton Content="Conflicts"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsConflictsActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.Conflicts}" />
+                            <RadioButton Content="Log Analyzer"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsLogAnalyzerActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.LogAnalyzer}" />
+                            <RadioButton Content="Diagnostics"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsDiagnosticsActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.Diagnostics}" />
+                            <RadioButton Content="Troubleshoot: Clean Test"
+                                         Style="{StaticResource NavButtonStyle}"
+                                         GroupName="MainNav"
+                                         IsChecked="{Binding IsCleanTestActive, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="{x:Static services:AppView.CleanTest}" />
+                        </StackPanel>
+                        <TextBlock Text="FS25 mod manager"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   VerticalAlignment="Bottom"
+                                   Margin="16,0,0,12" />
+                    </Grid>
+                </Border>
+
+                <!-- Content -->
+                <ContentControl Grid.Column="1"
+                                Content="{Binding CurrentViewModel}"
+                                Margin="24" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

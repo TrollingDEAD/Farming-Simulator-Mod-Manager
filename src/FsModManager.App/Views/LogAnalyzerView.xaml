@@ -1,0 +1,328 @@
+<UserControl x:Class="FsModManager.App.Views.LogAnalyzerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:FsModManager.App.Converters">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVis" />
+
+        <!-- One Warning/Error entry: severity-tinted left edge, plain-language explanation,
+             an optional "matches a known conflict" tag, and an expandable raw log line. -->
+        <DataTemplate x:Key="LogEntryRowTemplate">
+            <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="4" Background="{StaticResource SurfaceBrush}"
+                    BorderThickness="3,0,0,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="BorderBrush" Value="{StaticResource LikelyBrush}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource CriticalBrush}" />
+                            </DataTrigger>
+                                <DataTrigger Binding="{Binding IsInfoOnly}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <Border CornerRadius="3" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Top">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{StaticResource LikelyBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource CriticalBrush}" />
+                                            </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsInfoOnly}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource ControlBrush}" />
+                                                </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding SeverityLabel}" FontSize="10" FontWeight="SemiBold" Foreground="Black" />
+                            </Border>
+                            <Border Background="{StaticResource ControlBrush}"
+                                    CornerRadius="3"
+                                    Padding="6,1"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Top">
+                                <TextBlock Text="{Binding FixabilityLabel}"
+                                           FontSize="10"
+                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                            </Border>
+                            <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0,0,0">
+                            <Button Content="Fix"
+                                    FontSize="11"
+                                    Margin="0,0,6,0"
+                                    VerticalAlignment="Top"
+                                    Command="{Binding ApplyFixCommand}"
+                                    Visibility="{Binding CanFix, Converter={StaticResource BoolToVis}}" />
+                            <Button Content="Show raw log line"
+                                    FontSize="11"
+                                    VerticalAlignment="Top"
+                                    Command="{Binding ToggleRawLineCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="Matches a conflict already detected by static scanning"
+                               FontSize="11"
+                               FontStyle="Italic"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,4,0,0"
+                               Visibility="{Binding MatchesKnownConflict, Converter={StaticResource BoolToVis}}" />
+
+                    <Border Background="{StaticResource ControlBrush}"
+                            CornerRadius="3"
+                            Padding="8,6"
+                            Margin="0,6,0,0"
+                            Visibility="{Binding IsRawLineExpanded, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding RawLine}"
+                                   FontFamily="Consolas"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- One mod's section: header (chevron + name + counts + jump-to-mod) followed by its
+             entries when expanded. Collapsed by default once a mod has more than a few entries -
+             the header alone still shows the name and a count so scanning the collapsed state is
+             still useful. -->
+        <DataTemplate x:Key="ModGroupTemplate">
+            <StackPanel Margin="0,0,0,16">
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
+                            Width="22"
+                            Height="22"
+                            Margin="0,0,6,0"
+                            Style="{StaticResource IconButtonStyle}"
+                            Command="{Binding ToggleExpandedCommand}"
+                            ToolTip="Expand/collapse this mod's entries"
+                            VerticalAlignment="Center">
+                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="10">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="&#xE76C;" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                            <Setter Property="Text" Value="&#xE70D;" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ModDisplayTitle}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding CountLabel, StringFormat=' ({0})'}"
+                                   FontSize="13"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+                    <Button Grid.Column="2"
+                            Content="Show in mod list"
+                            Command="{Binding GoToModCommand}" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Entries}"
+                              ItemTemplate="{StaticResource LogEntryRowTemplate}"
+                              Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,8" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Log Analyzer" FontSize="24" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Copy report"
+                        Margin="0,0,8,0"
+                        Command="{Binding CopyReportCommand}"
+                        Visibility="{Binding ShowResults, Converter={StaticResource BoolToVis}}" />
+                <Button Content="Analyze latest log"
+                        Command="{Binding AnalyzeCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Search box: same style/placeholder pattern as the mod list's search box. -->
+        <Border Grid.Row="1"
+                Width="260"
+                Height="34"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,12"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding ShowResults, Converter={StaticResource BoolToVis}}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{StaticResource ControlBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=SearchTextBox}" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="&#xE721;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="10,0,0,0" />
+
+                <TextBox x:Name="SearchTextBox"
+                         Grid.Column="1"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Tag="Search by mod name or keyword…"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="6,0"
+                         VerticalContentAlignment="Center" />
+
+                <Button Grid.Column="2"
+                        Content="&#xE711;"
+                        FontSize="9"
+                        Width="22"
+                        Height="22"
+                        Margin="0,0,4,0"
+                        Style="{StaticResource IconButtonStyle}"
+                        Command="{Binding ClearSearchCommand}"
+                        ToolTip="Clear search"
+                        Visibility="{Binding SearchText, Converter={StaticResource EmptyStringToVis}}" />
+            </Grid>
+        </Border>
+
+        <!-- Summary, only shown once a pass has actually run. -->
+        <Border Grid.Row="2"
+                Padding="12,10"
+                Margin="0,0,0,14"
+                CornerRadius="4"
+                Background="{StaticResource ControlBrush}"
+                Visibility="{Binding HasAnalyzed, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" />
+        </Border>
+
+        <Grid Grid.Row="3">
+            <!-- Never-analyzed state: prompt to run the analysis instead of showing a blank screen. -->
+            <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding ShowAnalyzePrompt, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="&#xE9D9;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="32"
+                           HorizontalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+                <TextBlock Text="Click &quot;Analyze latest log&quot; to scan FS25's log.txt for errors and warnings."
+                           FontSize="14"
+                           Margin="0,8,0,0"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxWidth="360"
+                           TextAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- Positive empty state: log.txt missing, or a clean session with zero issues. -->
+            <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="&#xE73E;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="32"
+                           HorizontalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+                <TextBlock FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="0,8,0,0"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxWidth="360"
+                           TextAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="No warnings or errors found in the latest session - your log is clean!" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LogFileExists}" Value="False">
+                                    <Setter Property="Text" Value="log.txt hasn't been created yet. Run the game at least once, then analyze again." />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+
+            <ScrollViewer Visibility="{Binding ShowResults, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <!-- Distinct, clearly-labeled "not mod-related" section - shown first so users
+                         don't waste time suspecting mods for what's actually a GPU/driver issue. -->
+                    <StackPanel Visibility="{Binding HasNotModRelatedEntries, Converter={StaticResource BoolToVis}}">
+                        <Border Background="{StaticResource ControlBrush}"
+                                CornerRadius="4"
+                                Padding="10,8"
+                                Margin="0,0,0,8">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE946;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="16"
+                                           Margin="0,0,8,0"
+                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Text="Not mod-related - likely a GPU/driver (VRAM) issue, not something your mods caused"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding NotModRelatedEntriesView}" ItemTemplate="{StaticResource LogEntryRowTemplate}" />
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding ModGroupsView}" ItemTemplate="{StaticResource ModGroupTemplate}" />
+
+                    <StackPanel Visibility="{Binding HasUnattributedEntries, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Unattributed" Style="{StaticResource SectionHeaderStyle}" />
+                        <ItemsControl ItemsSource="{Binding UnattributedEntriesView}" ItemTemplate="{StaticResource LogEntryRowTemplate}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

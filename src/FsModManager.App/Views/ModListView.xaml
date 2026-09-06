@@ -1,0 +1,757 @@
+<UserControl x:Class="FsModManager.App.Views.ModListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:FsModManager.Core.Models;assembly=FsModManager.Core"
+             xmlns:converters="clr-namespace:FsModManager.App.Converters">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:NullToVisibilityConverter x:Key="NullToVis" />
+        <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVis" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="Mods" FontSize="24" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding ModsFolderText}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+            <Button Content="Rescan"
+                    Command="{Binding RescanCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top" />
+        </Grid>
+
+        <!-- Busy indicator -->
+        <ProgressBar Grid.Row="1"
+                     Margin="0,0,0,10"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+
+        <!-- Search + category filter chips: kept to one compact row unless the user has picked
+             categories from the "More" popup that aren't already visible, in which case a small
+             overflow-tag row appears below it. -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Search box: magnifying-glass prefix, template-driven placeholder (Tag), clear "x" suffix -->
+                <Border Grid.Column="0"
+                        Width="260"
+                        Height="34"
+                        Margin="0,0,12,0"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource ControlBrush}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=SearchTextBox}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="&#xE721;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0,0,0" />
+
+                        <TextBox x:Name="SearchTextBox"
+                                 Grid.Column="1"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="Search mods…"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="6,0"
+                                 VerticalContentAlignment="Center"
+                                 ToolTip="Search by display title, internal mod name, or author" />
+
+                        <Button Grid.Column="2"
+                                Content="&#xE711;"
+                                FontSize="9"
+                                Width="22"
+                                Height="22"
+                                Margin="0,0,4,0"
+                                Style="{StaticResource IconButtonStyle}"
+                                Command="{Binding ClearSearchCommand}"
+                                ToolTip="Clear search"
+                                Visibility="{Binding SearchText, Converter={StaticResource EmptyStringToVis}}" />
+                    </Grid>
+                </Border>
+
+                <!-- Quick-access category chips: top categories by mod count, single non-wrapping
+                     row that scrolls horizontally rather than wrapping to more rows. -->
+                <ScrollViewer Grid.Column="1"
+                              VerticalAlignment="Center"
+                              VerticalScrollBarVisibility="Disabled"
+                              HorizontalScrollBarVisibility="Auto"
+                              Visibility="{Binding HasCategoryChips, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="All"
+                                Style="{StaticResource ChipButtonStyle}"
+                                Command="{Binding ClearCategoryFilterCommand}"
+                                ToolTip="Clear all category filters"
+                                Margin="0,0,6,0" />
+                        <ItemsControl ItemsSource="{Binding QuickCategoryChips}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ToggleButton Content="{Binding Name}"
+                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                  Style="{StaticResource ChipToggleButtonStyle}"
+                                                  ToolTip="{Binding DisplayLabel}"
+                                                  Margin="0,0,6,0" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ToggleButton x:Name="MoreCategoriesButton"
+                                      Content="More…"
+                                      IsChecked="{Binding IsMoreCategoriesOpen, Mode=TwoWay}"
+                                      Style="{StaticResource ChipToggleButtonStyle}"
+                                      ToolTip="Browse every category"
+                                      Visibility="{Binding HasMoreCategoryChips, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Popup PlacementTarget="{Binding ElementName=MoreCategoriesButton}"
+                       IsOpen="{Binding IsMoreCategoriesOpen, Mode=TwoWay}"
+                       StaysOpen="False"
+                       AllowsTransparency="True"
+                       PopupAnimation="Slide"
+                       Placement="Bottom">
+                    <Border Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10"
+                            Width="260">
+                        <StackPanel>
+                            <TextBox Text="{Binding CategoryPopupSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Tag="Filter categories…"
+                                     Height="30"
+                                     Margin="0,0,0,8" />
+
+                            <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding MoreCategoryChipsView}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding DisplayLabel}"
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      Margin="0,4" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <Button Content="Clear all"
+                                    Style="{StaticResource ChipButtonStyle}"
+                                    Command="{Binding ClearCategoryFilterCommand}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Popup>
+            </Grid>
+
+            <!-- Overflow tags: categories selected via the "More" popup that aren't in the quick row -->
+            <ItemsControl ItemsSource="{Binding OverflowSelectedChips}"
+                          Margin="0,8,0,0"
+                          Visibility="{Binding HasOverflowSelectedChips, Converter={StaticResource BoolToVis}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{StaticResource SelectionBrush}"
+                                CornerRadius="10"
+                                Padding="8,3"
+                                Margin="0,0,6,6">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Name}" FontSize="11" VerticalAlignment="Center" />
+                                <Button Content="&#xE711;"
+                                        FontSize="8"
+                                        Width="16"
+                                        Height="16"
+                                        Margin="6,0,0,0"
+                                        Style="{StaticResource IconButtonStyle}"
+                                        ToolTip="Remove this category filter"
+                                        Command="{Binding DataContext.RemoveCategorySelectionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- Empty state -->
+        <Border Grid.Row="3"
+                Padding="32"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                HorizontalAlignment="Left"
+                Visibility="{Binding HasEmptyState, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding EmptyStateMessage}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       MaxWidth="520" />
+        </Border>
+
+        <!-- Mod list -->
+        <ListBox x:Name="ModsListBox"
+                 Grid.Row="3"
+                 ItemsSource="{Binding ModsView}"
+                 SelectedItem="{Binding SelectedMod}"
+                 SelectionChanged="ModsListBox_SelectionChanged"
+                 Visibility="{Binding ShowList, Converter={StaticResource BoolToVis}}">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="ToolTip" Value="{Binding ConflictSummary}" />
+                    <Setter Property="ContextMenu">
+                        <Setter.Value>
+                            <ContextMenu DataContext="{Binding Path=PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="Show in folder" Command="{Binding ShowInFolderCommand}" />
+                                <MenuItem Header="Show problems"
+                                          Command="{Binding ShowProblemsCommand}"
+                                          Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVis}}" />
+                                <MenuItem Header="Open modDesc.xml" Command="{Binding OpenModDescCommand}" />
+                                <MenuItem Header="Copy internal mod name" Command="{Binding CopyInternalModNameCommand}" />
+                                <Separator />
+                                <MenuItem Header="Delete mod" Command="{Binding DeleteModCommand}" />
+                            </ContextMenu>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasConflicts}" Value="False">
+                            <Setter Property="ToolTip" Value="{x:Null}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                    <Border Padding="8,6" CornerRadius="4">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="Transparent" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Possible}">
+                                        <Setter Property="Background" Value="{StaticResource PossibleRowBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Likely}">
+                                        <Setter Property="Background" Value="{StaticResource LikelyRowBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Critical}">
+                                        <Setter Property="Background" Value="{StaticResource CriticalRowBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Expand/collapse toggle -->
+                            <Button Grid.Column="0"
+                                    Width="22"
+                                    Height="22"
+                                    Margin="0,0,6,0"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    Command="{Binding ToggleExpandCommand}"
+                                    ToolTip="Show/hide this mod's shop items"
+                                    VerticalAlignment="Center">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="10">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="&#xE76C;" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                    <Setter Property="Text" Value="&#xE70D;" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button>
+
+                            <!-- Icon (decoded image, or a generic placeholder glyph) -->
+                            <Grid Grid.Column="1" Width="36" Height="36" Margin="0,0,12,0">
+                                <Border Background="{StaticResource ControlBrush}" CornerRadius="4" />
+                                <Image Source="{Binding Icon}"
+                                       Visibility="{Binding Icon, Converter={StaticResource NullToVis}}"
+                                       Stretch="UniformToFill" />
+                                <TextBlock Text="&#xE7C4;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="16"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding Icon, Converter={StaticResource NullToVis}, ConverterParameter=Invert}" />
+                            </Grid>
+
+                            <!-- Title / author -->
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayTitle, Mode=OneWay}"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding DisplayTitle, Mode=OneWay}" />
+                                <TextBlock Text="{Binding Author, Mode=OneWay}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="12"
+                                           Margin="0,2,0,0"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding Author, Mode=OneWay}" />
+                            </StackPanel>
+
+                            <!-- Version (independent field, never appended to the title) -->
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding Version, Mode=OneWay}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       Margin="12,0,0,0"
+                                       MinWidth="60" />
+
+                            <!-- Multiplayer / crossplay indicators (separate from the row's conflict-severity tint) -->
+                            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Text="&#xE716;"
+                                           Margin="0,0,8,0"
+                                           ToolTip="{Binding MultiplayerTooltip}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                            <Setter Property="Opacity" Value="0.5" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MultiplayerSupported}" Value="{x:Null}">
+                                                    <Setter Property="Text" Value="&#xE897;" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MultiplayerSupported}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                    <Setter Property="Opacity" Value="1" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MultiplayerSupported}" Value="False">
+                                                    <Setter Property="Text" Value="&#xE711;" />
+                                                    <Setter Property="Opacity" Value="0.4" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Text="&#xE897;"
+                                           ToolTip="{Binding CrossplayTooltip}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                            <Setter Property="Opacity" Value="0.5" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CrossplayStatus}" Value="{x:Static models:CrossplayStatus.Supported}">
+                                                    <Setter Property="Text" Value="&#xE774;" />
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                    <Setter Property="Opacity" Value="1" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CrossplayStatus}" Value="{x:Static models:CrossplayStatus.NotSupported}">
+                                                    <Setter Property="Text" Value="&#xE711;" />
+                                                    <Setter Property="Foreground" Value="{StaticResource CriticalBrush}" />
+                                                    <Setter Property="Opacity" Value="0.8" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <!-- Parse-warning indicator -->
+                            <TextBlock Grid.Column="5"
+                                       Text="⚠"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,0,0"
+                                       ToolTip="{Binding WarningSummary}"
+                                       Visibility="{Binding HasWarnings, Converter={StaticResource BoolToVis}}" />
+
+                            <!-- Source file -->
+                            <TextBlock Grid.Column="6"
+                                       Text="{Binding SourceFileName}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,0,0"
+                                       MaxWidth="220"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding SourceFileName}" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Expanded content: this mod's storeItems (shop objects), nested/indented so
+                         it visually reads as belonging to the row above it. -->
+                    <Border Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}"
+                            Background="{StaticResource ControlBrush}"
+                            BorderBrush="{StaticResource AccentBrush}"
+                            BorderThickness="2,0,0,0"
+                            Margin="28,0,0,4"
+                            Padding="10,8">
+                        <StackPanel>
+                            <!-- Mod-level info section: description/size/date/descVersion/kind + diagnostics -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="{Binding DescriptionDisplay}"
+                                           Visibility="{Binding HasDescription, Converter={StaticResource BoolToVis}}"
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                <Button Content="Show more"
+                                        Command="{Binding ToggleDescriptionExpandedCommand}"
+                                        HorizontalAlignment="Left"
+                                        Padding="0"
+                                        FontSize="11"
+                                        Margin="0,2,0,0">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                            <Setter Property="FontFamily" Value="Segoe UI" />
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsDescriptionTruncated}" Value="True" />
+                                                        <Condition Binding="{Binding IsDescriptionExpanded}" Value="False" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Show less"
+                                        Command="{Binding ToggleDescriptionExpandedCommand}"
+                                        HorizontalAlignment="Left"
+                                        Padding="0"
+                                        FontSize="11"
+                                        Margin="0,2,0,0">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                            <Setter Property="FontFamily" Value="Segoe UI" />
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsDescriptionTruncated}" Value="True" />
+                                                        <Condition Binding="{Binding IsDescriptionExpanded}" Value="True" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <WrapPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <TextBlock Text="{Binding FileSizeDisplay}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,0,12,0"
+                                               ToolTip="File size" />
+                                    <TextBlock Text="{Binding LastModifiedDisplay}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,0,12,0"
+                                               ToolTip="Last modified" />
+                                    <TextBlock FontSize="11"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,0,12,0"
+                                               ToolTip="modDesc descVersion">
+                                        <Run Text="descVersion " /><Run Text="{Binding DescVersionDisplay, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="7,1">
+                                        <TextBlock Text="{Binding ModKindDisplay}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </Border>
+                                </WrapPanel>
+
+                                <!-- Diagnostics: only shown at all when there's at least one parse warning -->
+                                <StackPanel Margin="0,6,0,0" Visibility="{Binding HasWarnings, Converter={StaticResource BoolToVis}}">
+                                    <ToggleButton Content="{Binding DiagnosticsLabel}"
+                                                  IsChecked="{Binding IsDiagnosticsExpanded, Mode=TwoWay}"
+                                                  Command="{Binding ToggleDiagnosticsExpandedCommand}"
+                                                  Style="{StaticResource ChipToggleButtonStyle}"
+                                                  HorizontalAlignment="Left"
+                                                  FontSize="11" />
+                                    <ItemsControl ItemsSource="{Binding Warnings}"
+                                                  Margin="4,4,0,0"
+                                                  Visibility="{Binding IsDiagnosticsExpanded, Converter={StaticResource BoolToVis}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="11"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Loading indicator -->
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding IsContentLoading, Converter={StaticResource BoolToVis}}">
+                                <ProgressBar IsIndeterminate="True" Width="80" Height="4" VerticalAlignment="Center" />
+                                <TextBlock Text="Scanning shop items…"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="12"
+                                           Margin="8,0,0,0"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <!-- Empty state: script/map-only mods with no storeItems at all -->
+                            <TextBlock Text="This mod has no shop items."
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       FontStyle="Italic"
+                                       Visibility="{Binding ShowNoContentMessage, Converter={StaticResource BoolToVis}}" />
+
+                            <!-- Object rows -->
+                            <ItemsControl ItemsSource="{Binding ContentItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,2">
+                                        <Border Padding="6,5" CornerRadius="3" ToolTip="{Binding ConflictSummary}">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Possible}">
+                                                            <Setter Property="Background" Value="{StaticResource PossibleRowBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Likely}">
+                                                            <Setter Property="Background" Value="{StaticResource LikelyRowBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Critical}">
+                                                            <Setter Property="Background" Value="{StaticResource CriticalRowBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding HasConflicts}" Value="False">
+                                                            <Setter Property="ToolTip" Value="{x:Null}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+
+                                                <Grid Grid.Column="0" Width="28" Height="28" Margin="0,0,10,0">
+                                                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="3" />
+                                                    <Image Source="{Binding Icon}"
+                                                           Visibility="{Binding Icon, Converter={StaticResource NullToVis}}"
+                                                           Stretch="UniformToFill" />
+                                                    <TextBlock Text="&#xE719;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="12"
+                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               Visibility="{Binding Icon, Converter={StaticResource NullToVis}, ConverterParameter=Invert}" />
+                                                </Grid>
+
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding ObjectDisplayName, Mode=OneWay}"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding ObjectDisplayName, Mode=OneWay}" />
+                                                    <ItemsControl ItemsSource="{Binding Specs}" Margin="0,2,0,0">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel Orientation="Horizontal" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Background="{StaticResource SurfaceBrush}"
+                                                                        CornerRadius="8"
+                                                                        Padding="6,1"
+                                                                        Margin="0,0,4,2">
+                                                                    <TextBlock FontSize="10" Foreground="{StaticResource TextSecondaryBrush}">
+                                                                        <Run Text="{Binding Label, Mode=OneWay}" />
+                                                                        <Run Text=": " />
+                                                                        <Run Text="{Binding Value, Mode=OneWay}" />
+                                                                    </TextBlock>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding PriceDisplay, Mode=OneWay}"
+                                                           FontSize="12"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Right"
+                                                           Margin="12,0,0,0" />
+
+                                                <Button Grid.Column="3"
+                                                        Width="20"
+                                                        Height="20"
+                                                        Margin="8,0,0,0"
+                                                        Style="{StaticResource IconButtonStyle}"
+                                                        Command="{Binding ToggleExpandedCommand}"
+                                                        ToolTip="Show/hide details"
+                                                        Visibility="{Binding HasSecondaryDetail, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="9">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Text" Value="&#xE76C;" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                        <Setter Property="Text" Value="&#xE70D;" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Object-level secondary detail: only shown fields the object actually has -->
+                                        <Border Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}"
+                                                Margin="24,2,0,0"
+                                                Padding="8,6">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource ControlBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Possible}">
+                                                            <Setter Property="Background" Value="{StaticResource PossibleRowBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Likely}">
+                                                            <Setter Property="Background" Value="{StaticResource LikelyRowBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WorstSeverity}" Value="{x:Static models:ConflictSeverity.Critical}">
+                                                            <Setter Property="Background" Value="{StaticResource CriticalRowBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                                           Visibility="{Binding HasBrand, Converter={StaticResource BoolToVis}}">
+                                                    <Run Text="Brand: " /><Run Text="{Binding Brand, Mode=OneWay}" FontWeight="SemiBold" />
+                                                </TextBlock>
+                                                <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"
+                                                           Visibility="{Binding HasMass, Converter={StaticResource BoolToVis}}">
+                                                    <Run Text="Mass: " /><Run Text="{Binding MassDisplay, Mode=OneWay}" FontWeight="SemiBold" />
+                                                </TextBlock>
+                                                <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"
+                                                           Visibility="{Binding HasRequiredPowerHp, Converter={StaticResource BoolToVis}}">
+                                                    <Run Text="Required power: " /><Run Text="{Binding RequiredPowerDisplay, Mode=OneWay}" FontWeight="SemiBold" />
+                                                </TextBlock>
+
+                                                <ItemsControl ItemsSource="{Binding Functions}"
+                                                              Margin="0,4,0,0"
+                                                              Visibility="{Binding HasFunctions, Converter={StaticResource BoolToVis}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="6,1" Margin="0,0,4,2">
+                                                                <TextBlock Text="{Binding}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <ItemsControl ItemsSource="{Binding RawFillCapacityDisplays}"
+                                                              Margin="0,4,0,0"
+                                                              Visibility="{Binding HasRawFillCapacities, Converter={StaticResource BoolToVis}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <ItemsControl ItemsSource="{Binding ConfigurationGroupLabels}"
+                                                              Margin="0,4,0,0"
+                                                              Visibility="{Binding HasConfigurationGroups, Converter={StaticResource BoolToVis}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding}"
+                                                                       FontSize="11"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                                       Margin="0,0,10,0" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>

@@ -1,0 +1,59 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===== Raw palette ===== -->
+    <Color x:Key="BackgroundColor">#FF17191C</Color>
+    <Color x:Key="SidebarColor">#FF121417</Color>
+    <Color x:Key="SurfaceColor">#FF212428</Color>
+    <Color x:Key="ControlColor">#FF2B2F33</Color>
+    <Color x:Key="ControlHoverColor">#FF363B41</Color>
+    <Color x:Key="ControlPressedColor">#FF222527</Color>
+    <Color x:Key="BorderColor">#FF3A3F45</Color>
+    <Color x:Key="BorderHoverColor">#FF4C535B</Color>
+    <Color x:Key="AccentColor">#FF4C9E52</Color>
+    <Color x:Key="AccentHoverColor">#FF5DB465</Color>
+    <Color x:Key="AccentPressedColor">#FF3E8444</Color>
+    <Color x:Key="SelectionColor">#FF2E4633</Color>
+    <Color x:Key="TextPrimaryColor">#FFE6E8EA</Color>
+    <Color x:Key="TextSecondaryColor">#FF9AA1A8</Color>
+    <Color x:Key="TextOnAccentColor">#FFFFFFFF</Color>
+
+    <Color x:Key="CriticalColor">#FFE5484D</Color>
+    <Color x:Key="LikelyColor">#FFF08C3C</Color>
+    <Color x:Key="PossibleColor">#FFF2D13D</Color>
+
+    <Color x:Key="InfoBannerColor">#FF1E3A2A</Color>
+    <Color x:Key="WarningBannerColor">#FF40301A</Color>
+    <Color x:Key="ErrorBannerColor">#FF402022</Color>
+
+    <!-- ===== Brushes ===== -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="{StaticResource SidebarColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="ControlBrush" Color="{StaticResource ControlColor}" />
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="{StaticResource ControlHoverColor}" />
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="{StaticResource ControlPressedColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="BorderHoverBrush" Color="{StaticResource BorderHoverColor}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}" />
+    <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource SelectionColor}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="{StaticResource TextOnAccentColor}" />
+
+    <SolidColorBrush x:Key="CriticalBrush" Color="{StaticResource CriticalColor}" />
+    <SolidColorBrush x:Key="LikelyBrush" Color="{StaticResource LikelyColor}" />
+    <SolidColorBrush x:Key="PossibleBrush" Color="{StaticResource PossibleColor}" />
+
+    <!-- Tinted (low-opacity) row-highlight variants of the severity colors, for conflict rows —
+         readable body text over these, unlike the fully saturated badge/border brushes above. -->
+    <SolidColorBrush x:Key="CriticalRowBrush" Color="{StaticResource CriticalColor}" Opacity="0.16" />
+    <SolidColorBrush x:Key="LikelyRowBrush" Color="{StaticResource LikelyColor}" Opacity="0.14" />
+    <SolidColorBrush x:Key="PossibleRowBrush" Color="{StaticResource PossibleColor}" Opacity="0.12" />
+
+    <SolidColorBrush x:Key="InfoBannerBrush" Color="{StaticResource InfoBannerColor}" />
+    <SolidColorBrush x:Key="WarningBannerBrush" Color="{StaticResource WarningBannerColor}" />
+    <SolidColorBrush x:Key="ErrorBannerBrush" Color="{StaticResource ErrorBannerColor}" />
+</ResourceDictionary>

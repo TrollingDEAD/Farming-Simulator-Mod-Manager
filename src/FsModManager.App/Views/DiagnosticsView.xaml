@@ -1,0 +1,534 @@
+<UserControl x:Class="FsModManager.App.Views.DiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:FsModManager.App.Converters">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:NullToVisibilityConverter x:Key="NullToVis" />
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,18,0,4" />
+        </Style>
+
+        <Style x:Key="SectionSubtitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Resources>
+
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Top Header & Rescan Button -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Diagnostics &amp; Health Check" FontSize="24" FontWeight="SemiBold" />
+            <Button Content="Rescan"
+                    Command="{Binding RescanCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top" />
+        </Grid>
+
+        <!-- Overall Health Summary Banner -->
+        <Border Grid.Row="1"
+                Padding="12,10"
+                Margin="0,0,0,14"
+                CornerRadius="4">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsHealthy}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource InfoBannerBrush}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding HasIssues}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource WarningBannerBrush}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource LikelyBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Icon -->
+                <TextBlock Grid.Column="0"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="18"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="&#xE73E;" />
+                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasIssues}" Value="True">
+                                    <Setter Property="Text" Value="&#xE7BA;" />
+                                    <Setter Property="Foreground" Value="{StaticResource LikelyBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Text -->
+                <TextBlock Grid.Column="1"
+                           Text="{Binding HealthSummaryText}"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+            </Grid>
+        </Border>
+
+        <!-- Main Content List / Cards -->
+        <ScrollViewer Grid.Row="2">
+            <StackPanel Margin="0,0,8,16">
+
+                <!-- 1. OneDrive / Cloud-Sync Status Card -->
+                <Border Padding="12" Margin="0,0,0,12" CornerRadius="4">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                            <Setter Property="BorderThickness" Value="1" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsOneDriveMissing}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource ErrorBannerBrush}" />
+                                    <Setter Property="BorderBrush" Value="{StaticResource CriticalBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsOneDriveSynced}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource WarningBannerBrush}" />
+                                    <Setter Property="BorderBrush" Value="{StaticResource LikelyBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   Text="&#xE753;"
+                                   FontSize="20"
+                                   VerticalAlignment="Top"
+                                   Margin="0,2,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsOneDriveMissing}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource CriticalBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsOneDriveSynced}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource LikelyBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="OneDrive &amp; Cloud Sync" FontWeight="SemiBold" FontSize="14" />
+                            <TextBlock Text="{Binding OneDriveMessage}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            
+                            <!-- Suggested fix if OneDrive warning/error -->
+                            <Border Margin="0,8,0,0"
+                                    Padding="8"
+                                    Background="{StaticResource ControlBrush}"
+                                    CornerRadius="4"
+                                    Visibility="{Binding HasOneDriveIssue, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding OneDriveSuggestedFix}"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- 2. Invalid Mod Filenames Section -->
+                <StackPanel Visibility="{Binding HasInvalidFilenames, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Invalid Mod Filenames" Style="{StaticResource SectionHeaderStyle}" Foreground="{StaticResource CriticalBrush}" />
+                    <TextBlock Text="Farming Simulator 25 will only load zip files containing letters, numbers, and underscores. Spaces or special characters in the filename cause mods to silently fail to appear in-game."
+                               Style="{StaticResource SectionSubtitleStyle}" />
+
+                    <ItemsControl ItemsSource="{Binding InvalidFilenames}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="12,10" Margin="0,0,0,6" CornerRadius="4" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock FontWeight="SemiBold" FontSize="13">
+                                                <Run Text="{Binding DisplayTitle, Mode=OneWay}" />
+                                                <Run Text=" (" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <Run Text="{Binding OriginalFileName, Mode=OneWay}" Foreground="{StaticResource CriticalBrush}" />
+                                                <Run Text=")" Foreground="{StaticResource TextSecondaryBrush}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding Reason}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,4,0,0" />
+                                            <TextBlock Margin="0,4,0,0" FontSize="12">
+                                                <Run Text="Suggested name: " Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <Run Text="{Binding SuggestedFileName, Mode=OneWay}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="1"
+                                                Content="Rename to valid"
+                                                Command="{Binding RenameCommand}"
+                                                VerticalAlignment="Center"
+                                                Margin="12,0,0,0"
+                                                ToolTip="Renames the mod zip file to the suggested valid filename." />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- 3. Possibly Outdated Mods (descVersion) Section -->
+                <StackPanel Visibility="{Binding HasOutdatedMods, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Possibly Outdated Mods (descVersion)" Style="{StaticResource SectionHeaderStyle}" Foreground="{StaticResource LikelyBrush}" />
+                    <TextBlock Text="ℹ Heuristic comparison: these mods declare a descVersion significantly lower than the highest version in your active library. This indicates the mod was built for an older game update, but may still work if unaffected by engine changes."
+                               Style="{StaticResource SectionSubtitleStyle}" />
+
+                    <ItemsControl ItemsSource="{Binding OutdatedMods}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="12,10" Margin="0,0,0,6" CornerRadius="4" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock FontWeight="SemiBold" FontSize="13">
+                                                <Run Text="{Binding DisplayTitle, Mode=OneWay}" />
+                                                <Run Text=" [" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <Run Text="{Binding FileName, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <Run Text="]" Foreground="{StaticResource TextSecondaryBrush}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding Message}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,4,0,0" />
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1"
+                                                Padding="8,4"
+                                                Background="{StaticResource ControlBrush}"
+                                                CornerRadius="4"
+                                                VerticalAlignment="Center"
+                                                Margin="12,0,0,0">
+                                            <TextBlock FontSize="11" Foreground="{StaticResource LikelyBrush}" FontWeight="SemiBold">
+                                                <Run Text="descVersion " />
+                                                <Run Text="{Binding ModDescVersion, Mode=OneWay}" />
+                                                <Run Text=" (max: " />
+                                                <Run Text="{Binding MaxLibraryDescVersion, Mode=OneWay}" />
+                                                <Run Text=")" />
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- 4. Duplicate & Stale Mod Versions Section -->
+                <StackPanel Visibility="{Binding HasDuplicates, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Duplicate &amp; Stale Mod Versions" Style="{StaticResource SectionHeaderStyle}" Foreground="{StaticResource PossibleBrush}" />
+                    <TextBlock Text="Multiple zip files detected for the same mod (matching title and base filename). Review the recommendation below, then remove the copy you don't want to keep — nothing is ever deleted automatically."
+                               Style="{StaticResource SectionSubtitleStyle}" />
+
+                    <ItemsControl ItemsSource="{Binding DuplicateGroups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="12,10" Margin="0,0,0,10" CornerRadius="4" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock FontWeight="SemiBold" FontSize="14" Margin="0,0,0,4">
+                                            <Run Text="{Binding DisplayTitle, Mode=OneWay}" />
+                                            <Run Text=" — " Foreground="{StaticResource TextSecondaryBrush}" />
+                                            <Run Text="{Binding CopyCount, Mode=OneWay}" Foreground="{StaticResource PossibleBrush}" />
+                                            <Run Text=" copies found" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </TextBlock>
+
+                                        <!-- Unclear state: signals disagree, no default selection pre-highlighted -->
+                                        <Border Visibility="{Binding UnclearReason, Converter={StaticResource NullToVis}}"
+                                                Background="{StaticResource ControlBrush}"
+                                                CornerRadius="3"
+                                                Padding="8,6"
+                                                Margin="0,0,0,8">
+                                            <TextBlock Text="{Binding UnclearReason, Mode=OneWay}"
+                                                       FontSize="11"
+                                                       FontStyle="Italic"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </Border>
+
+                                        <!-- Comparison card row: candidates shown side by side -->
+                                        <ItemsControl ItemsSource="{Binding Candidates}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Padding="10,8"
+                                                            Margin="0,2,10,10"
+                                                            MinWidth="260"
+                                                            MaxWidth="340"
+                                                            CornerRadius="4"
+                                                            Background="{StaticResource ControlBrush}"
+                                                            BorderThickness="2">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsRecommended}" Value="True">
+                                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+
+                                                        <StackPanel>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Grid.Column="0"
+                                                                           Text="{Binding FileName}"
+                                                                           FontWeight="SemiBold"
+                                                                           FontSize="12"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           ToolTip="{Binding FileName}" />
+
+                                                                <Border Grid.Column="1"
+                                                                        Padding="6,2"
+                                                                        CornerRadius="8"
+                                                                        Background="{StaticResource AccentBrush}"
+                                                                        Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVis}}"
+                                                                        Margin="8,0,0,0">
+                                                                    <TextBlock Text="Recommended" FontSize="10" FontWeight="SemiBold" />
+                                                                </Border>
+                                                            </Grid>
+
+                                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,4,0,0">
+                                                                <Run Text="Version: " />
+                                                                <Run Text="{Binding VersionDisplay, Mode=OneWay}" />
+                                                                <Run Text="  |  Size: " />
+                                                                <Run Text="{Binding FileSizeDisplay, Mode=OneWay}" />
+                                                                <Run Text="  |  Modified: " />
+                                                                <Run Text="{Binding LastModifiedDisplay, Mode=OneWay}" />
+                                                            </TextBlock>
+
+                                                            <!-- Reasons list -->
+                                                            <ItemsControl ItemsSource="{Binding Reasons}"
+                                                                          Visibility="{Binding HasReasons, Converter={StaticResource BoolToVis}}"
+                                                                          Margin="0,6,0,0">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                                                                            <Run Text="• " />
+                                                                            <Run Text="{Binding Mode=OneWay}" />
+                                                                        </TextBlock>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+
+                                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                                <Button Content="Compare content"
+                                                                        Command="{Binding ToggleCompareContentCommand}"
+                                                                        FontSize="11" />
+                                                                <Button Content="Remove"
+                                                                        Command="{Binding RemoveCommand}"
+                                                                        FontSize="11"
+                                                                        Margin="8,0,0,0"
+                                                                        ToolTip="Permanently delete this specific duplicate file from your mods folder (after confirmation)." />
+                                                            </StackPanel>
+
+                                                            <!-- Compare content: expandable object list, mirrors the main mod list's expand pattern -->
+                                                            <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}" Margin="0,8,0,0">
+                                                                <StackPanel Orientation="Horizontal" Visibility="{Binding IsContentLoading, Converter={StaticResource BoolToVis}}">
+                                                                    <ProgressBar IsIndeterminate="True" Width="70" Height="4" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="Scanning shop items…" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                                </StackPanel>
+
+                                                                <TextBlock Text="This copy has no shop items."
+                                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                                           FontSize="11"
+                                                                           FontStyle="Italic"
+                                                                           Visibility="{Binding ShowNoContentMessage, Converter={StaticResource BoolToVis}}" />
+
+                                                                <ItemsControl ItemsSource="{Binding ContentItems}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Border Padding="6,4" Margin="0,2,0,0" CornerRadius="3" Background="{StaticResource SurfaceBrush}">
+                                                                                <StackPanel>
+                                                                                    <TextBlock Text="{Binding ObjectDisplayName, Mode=OneWay}"
+                                                                                               FontSize="11"
+                                                                                               FontWeight="SemiBold"
+                                                                                               TextTrimming="CharacterEllipsis" />
+                                                                                    <ItemsControl ItemsSource="{Binding Specs}" Margin="0,2,0,0">
+                                                                                        <ItemsControl.ItemsPanel>
+                                                                                            <ItemsPanelTemplate>
+                                                                                                <WrapPanel Orientation="Horizontal" />
+                                                                                            </ItemsPanelTemplate>
+                                                                                        </ItemsControl.ItemsPanel>
+                                                                                        <ItemsControl.ItemTemplate>
+                                                                                            <DataTemplate>
+                                                                                                <Border Background="{StaticResource ControlBrush}"
+                                                                                                        CornerRadius="8"
+                                                                                                        Padding="6,1"
+                                                                                                        Margin="0,0,4,2">
+                                                                                                    <TextBlock FontSize="10" Foreground="{StaticResource TextSecondaryBrush}">
+                                                                                                        <Run Text="{Binding Label, Mode=OneWay}" />
+                                                                                                        <Run Text=": " />
+                                                                                                        <Run Text="{Binding Value, Mode=OneWay}" />
+                                                                                                    </TextBlock>
+                                                                                                </Border>
+                                                                                            </DataTemplate>
+                                                                                        </ItemsControl.ItemTemplate>
+                                                                                    </ItemsControl>
+                                                                                </StackPanel>
+                                                                            </Border>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- 5. Mod File Backups Section -->
+                <StackPanel Margin="0,8,0,0">
+                    <Grid Margin="0,18,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="Mod File Backups (Auto-Fix Safety Net)"
+                                   FontSize="15"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding ModBackupsSummaryText}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock Text="Automatic timestamped safety backups created before mod file edits or auto-fixes. You can roll back any mod to a previous backup copy at any time."
+                               Style="{StaticResource SectionSubtitleStyle}" />
+
+                    <!-- Empty state -->
+                    <Border Visibility="{Binding HasNoModBackups, Converter={StaticResource BoolToVis}}"
+                            Padding="12,10"
+                            Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                        <TextBlock Text="No mod file backups recorded yet. When an auto-fix or mod file edit is performed, a full backup of the original zip is automatically saved here."
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="12"
+                                   FontStyle="Italic" />
+                    </Border>
+
+                    <!-- Backups list -->
+                    <ItemsControl ItemsSource="{Binding ModBackups}"
+                                  Visibility="{Binding HasModBackups, Converter={StaticResource BoolToVis}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="12,10"
+                                        Margin="0,0,0,6"
+                                        CornerRadius="4"
+                                        Background="{StaticResource SurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock FontWeight="SemiBold" FontSize="13">
+                                                <Run Text="{Binding InternalModName, Mode=OneWay}" />
+                                                <Run Text=" — " Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <Run Text="{Binding FileName, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal" />
+                                            </TextBlock>
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <Border Background="{StaticResource ControlBrush}"
+                                                        CornerRadius="3"
+                                                        Padding="6,2"
+                                                        Margin="0,0,8,0">
+                                                    <TextBlock FontSize="11"
+                                                               Foreground="{StaticResource AccentBrush}"
+                                                               FontWeight="SemiBold"
+                                                               Text="{Binding Reason, Mode=OneWay}" />
+                                                </Border>
+                                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center">
+                                                    <Run Text="Created: " />
+                                                    <Run Text="{Binding CreatedText, Mode=OneWay}" />
+                                                    <Run Text="  |  Size: " />
+                                                    <Run Text="{Binding SizeText, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="1"
+                                                Content="Revert to this backup"
+                                                Command="{Binding RevertCommand}"
+                                                VerticalAlignment="Center"
+                                                Margin="12,0,0,0"
+                                                ToolTip="Atomically restores this backup over the live mod file in your mods folder." />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
