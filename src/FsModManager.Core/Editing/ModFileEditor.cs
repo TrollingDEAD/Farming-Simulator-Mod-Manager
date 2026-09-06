@@ -30,6 +30,8 @@ public sealed partial class ModFileEditor : IModFileEditor
     private readonly IModContentScanner? _contentScanner;
     private readonly string? _backupsRootOverride;
 
+    private sealed record EditValidationResult(IReadOnlyList<string> WarningsAfter, string? FailureDetails);
+
     // Count of mid-flight edit/revert operations (Interlocked-guarded) - backs IsEditInProgress,
     // which the self-update flow checks before applying an update + restarting the app.
     private int _activeEditCount;
@@ -49,11 +51,13 @@ public sealed partial class ModFileEditor : IModFileEditor
     /// <inheritdoc />
     public bool IsEditInProgress => Volatile.Read(ref _activeEditCount) > 0;
 
+        private const string DefaultEditReason = "auto-fix";
+
     /// <inheritdoc />
     public Task<EditResult> ApplyEditAsync(
         string modZipPath,
         ModFileEdit edit,
-        string reason = "auto-fix",
+            string reason = DefaultEditReason,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(edit);
@@ -64,7 +68,7 @@ public sealed partial class ModFileEditor : IModFileEditor
     public async Task<EditResult> ApplyEditBatchAsync(
         string modZipPath,
         IReadOnlyList<ModFileEdit> edits,
-        string reason = "auto-fix",
+            string reason = DefaultEditReason,
         CancellationToken cancellationToken = default)
     {
         Interlocked.Increment(ref _activeEditCount);
@@ -81,7 +85,7 @@ public sealed partial class ModFileEditor : IModFileEditor
     private async Task<EditResult> ApplyEditBatchCoreAsync(
         string modZipPath,
         IReadOnlyList<ModFileEdit> edits,
-        string reason = "auto-fix",
+            string reason = DefaultEditReason,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(modZipPath);
@@ -162,39 +166,7 @@ public sealed partial class ModFileEditor : IModFileEditor
         try
         {
             File.Copy(modZipPath, tempZipPath, overwrite: true);
-
-            using (var archive = ZipFile.Open(tempZipPath, ZipArchiveMode.Update))
-            {
-                // Every edit in the batch is applied to the SAME open archive/temp copy, so a
-                // multi-step change (e.g. write-new-entry + delete-old-entry + update a
-                // cross-reference) is one atomic unit — validated and committed (or rolled back)
-                // together, not as separate backup/validation cycles.
-                foreach (var edit in edits)
-                {
-                    var normalizedTarget = NormalizeZipEntryPath(edit.EntryPathInsideZip);
-                    var existingEntry = archive.Entries.FirstOrDefault(e =>
-                        NormalizeZipEntryPath(e.FullName).Equals(normalizedTarget, StringComparison.OrdinalIgnoreCase));
-
-                    switch (edit.Operation)
-                    {
-                        case EditOperation.ReplaceEntryContent:
-                            existingEntry?.Delete();
-                            var newEntry = archive.CreateEntry(edit.EntryPathInsideZip, CompressionLevel.Optimal);
-                            using (var writer = new StreamWriter(newEntry.Open(), new UTF8Encoding(false)))
-                            {
-                                writer.Write(edit.NewContent ?? string.Empty);
-                            }
-                            break;
-
-                        case EditOperation.DeleteEntry:
-                            existingEntry?.Delete();
-                            break;
-
-                        default:
-                            throw new NotSupportedException($"Unsupported edit operation: {edit.Operation}");
-                    }
-                }
-            }
+            await ApplyEditsToArchiveAsync(tempZipPath, edits);
         }
         catch (Exception ex)
         {
@@ -207,11 +179,16 @@ public sealed partial class ModFileEditor : IModFileEditor
                 WarningsAfter: Array.Empty<string>());
         }
 
-        // 4. Validate the modified temp zip copy (re-run ModDescParser and IModContentScanner)
-        ModMetadata afterMetadata;
+        EditValidationResult validation;
         try
         {
-            afterMetadata = await _modDescParser.ParseAsync(tempZipPath, cancellationToken);
+            validation = await ValidateEditedArchiveAsync(
+                tempZipPath,
+                beforeMetadata,
+                warningsBefore,
+                isStoreItemFile,
+                edits,
+                cancellationToken);
         }
         catch (Exception ex)
         {
@@ -224,35 +201,13 @@ public sealed partial class ModFileEditor : IModFileEditor
                 WarningsAfter: Array.Empty<string>());
         }
 
-        var warningsAfter = new List<string>(afterMetadata.Warnings);
-
-        var isStoreItemFileAfter = isStoreItemFile || edits.Any(e => IsStoreItemReferencedFile(afterMetadata, e.EntryPathInsideZip));
-        if (isStoreItemFileAfter && _contentScanner is not null)
-        {
-            _contentScanner.InvalidateCache(tempZipPath);
-            var tempModFileInfo = CreateModFileInfo(tempZipPath, afterMetadata);
-            var afterStoreItems = await _contentScanner.ScanContentAsync(tempModFileInfo, cancellationToken);
-            _contentScanner.InvalidateCache(tempZipPath);
-            warningsAfter.AddRange(afterStoreItems.SelectMany(s => s.Warnings));
-        }
-
-        // Check for parse errors or newly introduced warnings (ignoring temporary filename warnings)
-        var newWarnings = warningsAfter
-            .Where(w => !IsFilenameWarning(w))
-            .Where(w => !warningsBefore.Contains(w, StringComparer.OrdinalIgnoreCase))
-            .ToList();
-        var becameInvalid = !afterMetadata.IsValid && beforeMetadata.IsValid;
-
-        if (becameInvalid || newWarnings.Count > 0)
+        var warningsAfter = validation.WarningsAfter;
+        if (validation.FailureDetails is not null)
         {
             TryDeleteFile(tempZipPath);
-            var failureDetails = becameInvalid && newWarnings.Count == 0
-                ? (afterMetadata.Warnings.Count > 0 ? string.Join("; ", afterMetadata.Warnings) : "Mod metadata is invalid.")
-                : string.Join("; ", newWarnings);
-
             return new EditResult(
                 Success: false,
-                FailureReason: $"Validation failed: edit introduced new parse errors or warnings ({failureDetails})",
+                FailureReason: $"Validation failed: edit introduced new parse errors or warnings ({validation.FailureDetails})",
                 BackupPath: backupPath,
                 WarningsBefore: warningsBefore,
                 WarningsAfter: warningsAfter);
@@ -285,6 +240,75 @@ public sealed partial class ModFileEditor : IModFileEditor
             BackupPath: backupPath,
             WarningsBefore: warningsBefore,
             WarningsAfter: warningsAfter);
+    }
+
+    private async Task<EditValidationResult> ValidateEditedArchiveAsync(
+        string tempZipPath,
+        ModMetadata beforeMetadata,
+        IReadOnlyList<string> warningsBefore,
+        bool isStoreItemFile,
+        IReadOnlyList<ModFileEdit> edits,
+        CancellationToken cancellationToken)
+    {
+        var afterMetadata = await _modDescParser.ParseAsync(tempZipPath, cancellationToken);
+        var warningsAfter = new List<string>(afterMetadata.Warnings);
+        var isStoreItemFileAfter = isStoreItemFile || edits.Any(edit =>
+            IsStoreItemReferencedFile(afterMetadata, edit.EntryPathInsideZip));
+
+        if (isStoreItemFileAfter && _contentScanner is not null)
+        {
+            _contentScanner.InvalidateCache(tempZipPath);
+            var tempModFileInfo = CreateModFileInfo(tempZipPath, afterMetadata);
+            var afterStoreItems = await _contentScanner.ScanContentAsync(tempModFileInfo, cancellationToken);
+            _contentScanner.InvalidateCache(tempZipPath);
+            warningsAfter.AddRange(afterStoreItems.SelectMany(item => item.Warnings));
+        }
+
+        var newWarnings = warningsAfter
+            .Where(warning => !IsFilenameWarning(warning))
+            .Where(warning => !warningsBefore.Contains(warning, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+        var becameInvalid = !afterMetadata.IsValid && beforeMetadata.IsValid;
+
+        if (!becameInvalid && newWarnings.Count == 0)
+        {
+            return new EditValidationResult(warningsAfter, null);
+        }
+
+        var failureDetails = becameInvalid && newWarnings.Count == 0
+            ? afterMetadata.Warnings.Count > 0 ? string.Join("; ", afterMetadata.Warnings) : "Mod metadata is invalid."
+            : string.Join("; ", newWarnings);
+        return new EditValidationResult(warningsAfter, failureDetails);
+    }
+
+    private static async Task ApplyEditsToArchiveAsync(string zipPath, IReadOnlyList<ModFileEdit> edits)
+    {
+        using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Update);
+        foreach (var edit in edits)
+        {
+            var normalizedTarget = NormalizeZipEntryPath(edit.EntryPathInsideZip);
+            var existingEntry = archive.Entries.FirstOrDefault(entry =>
+                NormalizeZipEntryPath(entry.FullName).Equals(normalizedTarget, StringComparison.OrdinalIgnoreCase));
+
+            switch (edit.Operation)
+            {
+                case EditOperation.ReplaceEntryContent:
+                    existingEntry?.Delete();
+                    var newEntry = archive.CreateEntry(edit.EntryPathInsideZip, CompressionLevel.Optimal);
+                    using (var writer = new StreamWriter(newEntry.Open(), new UTF8Encoding(false)))
+                    {
+                        await writer.WriteAsync(edit.NewContent ?? string.Empty);
+                    }
+                    break;
+
+                case EditOperation.DeleteEntry:
+                    existingEntry?.Delete();
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Unsupported edit operation: {edit.Operation}");
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -359,7 +383,7 @@ public sealed partial class ModFileEditor : IModFileEditor
         string modZipPath,
         string entryPathInsideZip,
         Func<XDocument, XDocument> transform,
-        string reason = "auto-fix",
+            string reason = DefaultEditReason,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(modZipPath);
@@ -397,7 +421,7 @@ public sealed partial class ModFileEditor : IModFileEditor
             }
 
             using var stream = entry.Open();
-            doc = XDocument.Load(stream);
+            doc = await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken);
         }
         catch (XmlException ex)
         {

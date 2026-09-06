@@ -200,12 +200,19 @@ public sealed partial class ConflictsViewModel : ObservableObject
         }
 
         HasConflicts = matching.Count > 0;
-        SummaryText = HasConflicts
-            ? $"{CriticalConflicts.Count} critical, {LikelyConflicts.Count} likely, {PossibleConflicts.Count} possible " +
-              $"conflict(s) found across {_modList.Mods.Count} mods."
-            : string.IsNullOrWhiteSpace(SearchText) || _modList.AllConflicts.Count == 0
-                ? $"No conflicts detected across {_modList.Mods.Count} mods."
-                : "No conflicts match your search.";
+        if (HasConflicts)
+        {
+            SummaryText = $"{CriticalConflicts.Count} critical, {LikelyConflicts.Count} likely, {PossibleConflicts.Count} possible " +
+                          $"conflict(s) found across {_modList.Mods.Count} mods.";
+        }
+        else if (string.IsNullOrWhiteSpace(SearchText) || _modList.AllConflicts.Count == 0)
+        {
+            SummaryText = $"No conflicts detected across {_modList.Mods.Count} mods.";
+        }
+        else
+        {
+            SummaryText = "No conflicts match your search.";
+        }
 
         OnPropertyChanged(nameof(HasCriticalConflicts));
         OnPropertyChanged(nameof(HasLikelyConflicts));
@@ -307,7 +314,7 @@ public sealed partial class ConflictsViewModel : ObservableObject
         }
 
         var mergeResult = _mergeAnalyzer.AnalyzeFromZips(
-            modA.SourceFileName!, modA.InternalName, modB.SourceFileName!, modB.InternalName, conflict.SharedDataFileName!);
+            modA.SourceFileName, modA.InternalName, modB.SourceFileName, modB.InternalName, conflict.SharedDataFileName);
 
         if (!mergeResult.IsMergeable)
         {
@@ -326,15 +333,15 @@ public sealed partial class ConflictsViewModel : ObservableObject
             changeDescription: $"Merge both mods' non-overlapping \"{conflict.SharedDataFileName}\" additions into one identical file, " +
                                 $"applied to BOTH mods (eliminating the conflict rather than picking a winner). {mergeResult.Reason}",
             backupLocationDescription:
-                $"{_modFileEditor.GetBackupFolderPath(modA.SourceFileName!, modA.InternalName)}{Environment.NewLine}" +
-                $"{_modFileEditor.GetBackupFolderPath(modB.SourceFileName!, modB.InternalName)}");
+                $"{_modFileEditor.GetBackupFolderPath(modA.SourceFileName, modA.InternalName)}{Environment.NewLine}" +
+                $"{_modFileEditor.GetBackupFolderPath(modB.SourceFileName, modB.InternalName)}");
 
         if (!confirmed)
         {
             return;
         }
 
-        var (resultA, resultB) = await _mergeFix.ApplyAsync(mergeResult, modA.SourceFileName!, modB.SourceFileName!);
+        var (resultA, resultB) = await _mergeFix.ApplyAsync(mergeResult, modA.SourceFileName, modB.SourceFileName);
         if (resultA.Success && resultB.Success)
         {
             _notifications.Info($"Fixed: merged \"{conflict.SharedDataFileName}\" for both mods.");

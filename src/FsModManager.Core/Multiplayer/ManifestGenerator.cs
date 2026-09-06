@@ -49,6 +49,13 @@ public sealed class ManifestGenerator
         CancellationToken cancellationToken = default)
         => GenerateCoreAsync(mods.Select(m => new HashInput(m, null)), label, cancellationToken);
 
+    /// <summary>Metadata variant of <see cref="GenerateAsync(IReadOnlyList{ModFileInfo}, string?, CancellationToken)"/> — reuses the scan-time hash when present.</summary>
+    public Task<ModManifest> GenerateAsync(
+        IReadOnlyList<ModMetadata> mods,
+        string? label,
+        CancellationToken cancellationToken = default)
+        => GenerateCoreAsync(mods.Select(ToHashInput), label, cancellationToken);
+
     /// <summary>Manifest of only the supplied mods that are active in the given savegame's mods.xml.</summary>
     public Task<ModManifest> GenerateActiveAsync(
         IReadOnlyList<ModFileInfo> mods,
@@ -60,13 +67,6 @@ public sealed class ManifestGenerator
                 .Select(m => new HashInput(m, null)),
             label,
             cancellationToken);
-
-    /// <summary>Metadata variant of <see cref="GenerateAsync(IReadOnlyList{ModFileInfo}, string?, CancellationToken)"/> — reuses the scan-time hash when present.</summary>
-    public Task<ModManifest> GenerateAsync(
-        IReadOnlyList<ModMetadata> mods,
-        string? label,
-        CancellationToken cancellationToken = default)
-        => GenerateCoreAsync(mods.Select(ToHashInput), label, cancellationToken);
 
     /// <summary>Metadata variant of <see cref="GenerateActiveAsync(IReadOnlyList{ModFileInfo}, string, string?, CancellationToken)"/>.</summary>
     public Task<ModManifest> GenerateActiveAsync(

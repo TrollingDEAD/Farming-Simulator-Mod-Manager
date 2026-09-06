@@ -41,11 +41,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private Task CheckForUpdatesAsync() => _updateCoordinator.CheckForUpdateNowAsync();
 
-    [ObservableProperty]
-    private string _modsFolderPath = string.Empty;
-
-    // TODO: persist this setting (e.g. to a small settings.json under %LOCALAPPDATA%\FsModManager).
-
     /// <summary>
     /// How many automatic snapshots to keep per savegame. Persisted on change and pushed straight
     /// into the singleton <see cref="ModLoadOrderWriter"/> so it takes effect on the very next save.

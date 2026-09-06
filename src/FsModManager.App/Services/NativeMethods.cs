@@ -10,7 +10,7 @@ internal static class NativeMethods
     public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct RECT
+    public struct NativeRect
     {
         public int Left;
         public int Top;
@@ -29,8 +29,8 @@ internal static class NativeMethods
     public struct MONITORINFO
     {
         public int cbSize;
-        public RECT rcMonitor;
-        public RECT rcWork;
+        public NativeRect rcMonitor;
+        public NativeRect rcWork;
         public uint dwFlags;
     }
 
@@ -48,7 +48,7 @@ internal static class NativeMethods
     public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
 
     [DllImport("user32.dll")]
-    public static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
+    public static extern IntPtr MonitorFromRect(ref NativeRect lprc, uint dwFlags);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);

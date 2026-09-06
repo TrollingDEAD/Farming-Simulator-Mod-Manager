@@ -16,6 +16,9 @@ env:
   MAIN_EXE: FsModManager.App.exe
   CSPROJ_PATH: src/FsModManager.App/FsModManager.App.csproj
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: windows-latest
@@ -57,6 +60,10 @@ jobs:
       - name: Install vpk CLI
         run: dotnet tool install -g vpk
 
+      - name: Add .NET tools to PATH
+        shell: pwsh
+        run: Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.dotnet\tools"
+
       - name: Pack Velopack release
         shell: bash
         run: |
@@ -69,6 +76,8 @@ jobs:
 
       - name: Upload release to GitHub
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Tag-name convention: a `v1.2.0-beta`-style tag (contains a hyphen) publishes as a
           # prerelease; a plain `v1.2.0` tag publishes as a full release. Keeps the trigger simple
@@ -81,7 +90,7 @@ jobs:
 
           vpk upload github \
             --repoUrl "https://github.com/${{ github.repository }}" \
-            --token "${{ secrets.GITHUB_TOKEN }}" \
+            --token "$GITHUB_TOKEN" \
             --publish true \
             --pre "$pre" \
             --tag "$GITHUB_REF_NAME"

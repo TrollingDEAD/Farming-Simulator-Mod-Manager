@@ -267,7 +267,7 @@ public partial class App : Application
             _host.Dispose();
         }
 
-        Log.CloseAndFlush();
+        await Log.CloseAndFlushAsync();
         base.OnExit(e);
     }
 }

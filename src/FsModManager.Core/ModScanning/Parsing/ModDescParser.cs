@@ -96,19 +96,7 @@ public sealed partial class ModDescParser : IModDescParser
             }
 
             var descVersion = root.Attribute("descVersion")?.Value;
-            var descVersionParsed = false;
-            if (descVersion is null)
-            {
-                warnings.Add("Missing descVersion attribute on <modDesc>.");
-            }
-            else if (!int.TryParse(descVersion, out _))
-            {
-                warnings.Add($"descVersion attribute \"{descVersion}\" is not a valid integer.");
-            }
-            else
-            {
-                descVersionParsed = true;
-            }
+            var descVersionParsed = ParseDescVersion(descVersion, warnings);
 
             var version = root.Element("version")?.Value?.Trim();
             if (string.IsNullOrWhiteSpace(version))
@@ -135,20 +123,7 @@ public sealed partial class ModDescParser : IModDescParser
             var hasMapSignal = root.Element("maps")?.Elements("map").Any() == true;
             var modKind = ModKindClassifier.Classify(hasMapSignal, contentKinds: null);
 
-            bool? multiplayerSupported = null;
-            var multiplayerElement = root.Element("multiplayer");
-            var supportedAttr = multiplayerElement?.Attribute("supported")?.Value;
-            if (supportedAttr is not null)
-            {
-                if (bool.TryParse(supportedAttr, out var parsed))
-                {
-                    multiplayerSupported = parsed;
-                }
-                else
-                {
-                    warnings.Add($"Could not parse <multiplayer supported=\"{supportedAttr}\"/> as a boolean.");
-                }
-            }
+            var multiplayerSupported = ParseMultiplayerSupported(root, warnings);
 
             var storeItemElements = root.Element("storeItems")?.Elements("storeItem").ToList() ?? new List<XElement>();
             var storeItems = storeItemElements
@@ -235,6 +210,40 @@ public sealed partial class ModDescParser : IModDescParser
                 Warnings = warnings,
             };
         }
+    }
+
+    private static bool ParseDescVersion(string? descVersion, List<string> warnings)
+    {
+        if (descVersion is null)
+        {
+            warnings.Add("Missing descVersion attribute on <modDesc>.");
+            return false;
+        }
+
+        if (int.TryParse(descVersion, out _))
+        {
+            return true;
+        }
+
+        warnings.Add($"descVersion attribute \"{descVersion}\" is not a valid integer.");
+        return false;
+    }
+
+    private static bool? ParseMultiplayerSupported(XElement root, List<string> warnings)
+    {
+        var supportedAttribute = root.Element("multiplayer")?.Attribute("supported")?.Value;
+        if (supportedAttribute is null)
+        {
+            return null;
+        }
+
+        if (bool.TryParse(supportedAttribute, out var multiplayerSupported))
+        {
+            return multiplayerSupported;
+        }
+
+        warnings.Add($"Could not parse <multiplayer supported=\"{supportedAttribute}\"/> as a boolean.");
+        return null;
     }
 
     /// <summary>

@@ -58,7 +58,6 @@ public sealed partial class CleanTestWizardViewModel : ObservableObject
 {
     private readonly ModListViewModel _modList;
     private readonly CleanTestModeService _cleanTestMode;
-    private readonly IGameProcessChecker _gameProcessChecker;
     private readonly IGameLauncher _gameLauncher;
     private readonly AppState _appState;
     private readonly INotificationService _notifications;
@@ -73,7 +72,6 @@ public sealed partial class CleanTestWizardViewModel : ObservableObject
     public CleanTestWizardViewModel(
         ModListViewModel modList,
         CleanTestModeService cleanTestMode,
-        IGameProcessChecker gameProcessChecker,
         IGameLauncher gameLauncher,
         AppState appState,
         INotificationService notifications,
@@ -81,7 +79,6 @@ public sealed partial class CleanTestWizardViewModel : ObservableObject
     {
         _modList = modList;
         _cleanTestMode = cleanTestMode;
-        _gameProcessChecker = gameProcessChecker;
         _gameLauncher = gameLauncher;
         _appState = appState;
         _notifications = notifications;
@@ -413,12 +410,26 @@ public sealed partial class CleanTestWizardViewModel : ObservableObject
             ? RoundNumber
             : (int)Math.Ceiling(Math.Log2(Math.Max(2, _bisectionUniverse.Count)));
 
-        RoundProgressText = Step == CleanTestWizardStep.BisectionComplete
-            ? (_suspects.Count > 0
-                ? $"Isolated {_suspects.Count} suspect mod{(_suspects.Count > 1 ? "s" : "")} after {RoundNumber} round{(RoundNumber == 1 ? "" : "s")}."
-                : $"No suspect could be isolated after {RoundNumber} round{(RoundNumber == 1 ? "" : "s")} — every mod tested clean.")
-            : $"Round {RoundNumber} of ~{Math.Max(1, EstimatedTotalRounds)} — {UntestedRemainingCount} mod{(UntestedRemainingCount == 1 ? "" : "s")} remaining to test.";
+        if (Step == CleanTestWizardStep.BisectionComplete)
+        {
+            RoundProgressText = BuildCompletionProgressText();
+            return;
+        }
+
+        RoundProgressText = $"Round {RoundNumber} of ~{Math.Max(1, EstimatedTotalRounds)} — {UntestedRemainingCount} mod{PluralSuffix(UntestedRemainingCount)} remaining to test.";
     }
+
+    private string BuildCompletionProgressText()
+    {
+        if (_suspects.Count > 0)
+        {
+            return $"Isolated {_suspects.Count} suspect mod{PluralSuffix(_suspects.Count)} after {RoundNumber} round{PluralSuffix(RoundNumber)}.";
+        }
+
+        return $"No suspect could be isolated after {RoundNumber} round{PluralSuffix(RoundNumber)} — every mod tested clean.";
+    }
+
+    private static string PluralSuffix(int count) => count == 1 ? string.Empty : "s";
 
     /// <summary>Escape hatch: exit clean test mode and restore everything, from any step.</summary>
     [RelayCommand]

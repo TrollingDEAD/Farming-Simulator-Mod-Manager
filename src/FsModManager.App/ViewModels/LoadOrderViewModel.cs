@@ -282,7 +282,8 @@ public sealed partial class LoadOrderViewModel : ObservableObject, IDisposable
         {
             var folder = _snapshotService.GetSnapshotFolderPath(SelectedSavegame);
             Directory.CreateDirectory(folder);
-            System.Diagnostics.Process.Start("explorer.exe", $"\"{folder}\"");
+            var explorerPath = Path.Combine(Environment.SystemDirectory, "explorer.exe");
+            System.Diagnostics.Process.Start(explorerPath, $"\"{folder}\"");
         }
         catch (Exception ex)
         {

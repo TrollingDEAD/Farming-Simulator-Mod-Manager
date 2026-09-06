@@ -9,11 +9,13 @@ namespace FsModManager.Core.Diagnostics;
 /// </summary>
 public static class ModAttributionMatcher
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     // A bracketed tag at (or very near) the start of the line, e.g. "[Soil Fertilizer] ..." - some
     // well-behaved mods self-tag their log output this way. Real log lines also use brackets for
     // "[ERROR]"/a "[--- 74]" thread marker, neither of which is a mod self-tag, so those are excluded.
-    private static readonly Regex BracketTagRegex = new(@"\[(?<tag>[^\[\]]+)\]", RegexOptions.Compiled);
-    private static readonly Regex NonModTagRegex = new(@"^(ERROR|WARNING|INFO|-+\s*\d+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex BracketTagRegex = new(@"\[(?<tag>[^\[\]]+)\]", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex NonModTagRegex = new(@"^(ERROR|WARNING|INFO|-+\s*\d+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase, RegexTimeout);
 
     /// <summary>
     /// Returns the matched mod's <see cref="ModMetadata.InternalName"/>, or null if no known mod could

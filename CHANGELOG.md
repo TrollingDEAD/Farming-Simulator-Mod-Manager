@@ -10,8 +10,6 @@ could break compatibility with a previous version's saved state), **MINOR** for 
 
 ## [Unreleased]
 
-Nothing yet.
-
 ### Releasing a new version
 
 See [RELEASING.md](RELEASING.md) for the full walkthrough. Short version:
@@ -22,6 +20,30 @@ See [RELEASING.md](RELEASING.md) for the full walkthrough. Short version:
 4. The [`.github/workflows/release.yml`](.github/workflows/release.yml) workflow takes it from
    there: builds, tests, packages with Velopack (`vpk`), and publishes a GitHub Release that the
    app's self-updater checks against.
+
+## [1.1.1] - 2026-09-06
+
+### Fixed
+
+- Hardened the release workflow by passing its GitHub token through the upload step environment
+  instead of expanding the secret in a shell command, granted it release-publishing permission,
+  and added the Windows global .NET tools folder to `PATH` so `vpk` can run in later Bash steps.
+- Await application-exit log flushing and asynchronous mod-archive edits so background I/O can
+  finish without blocking asynchronous operations.
+- Simplified duplicate-mod keeper exclusion to use the model's value equality consistently.
+- Applied bounded one-second timeouts to regular expressions that process log, mod-source, and
+  community-editable error-pattern input, preventing pathological input from blocking analysis.
+- Use Explorer's absolute system path for opening backup and mod folders instead of resolving an
+  executable through `PATH`.
+- Removed unused Clean Test and Settings view-model dependencies/placeholders, and consolidated
+  the mod editor's shared default edit reason.
+- Simplified Clean Test, conflict-summary, and Diagnostics refresh control flow while preserving
+  existing user-facing states and recovery behavior.
+- Split log-analysis, mod-file edit, and mod descriptor parsing work into focused helpers while
+  retaining existing transaction safeguards, metadata values, and malformed-input warnings.
+- Renamed the internal Win32 rectangle interop type to follow .NET naming conventions while
+  preserving its native layout.
+- Grouped adjacent multiplayer manifest overloads for clearer maintenance.
 
 ## [1.1.0] - 2026-09-06
 

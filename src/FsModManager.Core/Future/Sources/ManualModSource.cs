@@ -10,6 +10,7 @@ namespace FsModManager.Core.Sources;
 /// </summary>
 public sealed class ManualModSource : IModSource
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
     private const string RegexPrefix = "regex:";
     private const string XPathPrefix = "xpath:";
 
@@ -67,7 +68,7 @@ public sealed class ManualModSource : IModSource
         if (selector.StartsWith(RegexPrefix, StringComparison.OrdinalIgnoreCase))
         {
             var pattern = selector[RegexPrefix.Length..];
-            var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline, RegexTimeout);
             if (!match.Success)
             {
                 return null;

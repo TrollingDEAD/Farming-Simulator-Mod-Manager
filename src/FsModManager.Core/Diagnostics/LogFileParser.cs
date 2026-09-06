@@ -18,13 +18,16 @@ namespace FsModManager.Core.Diagnostics;
 /// </summary>
 public static class LogFileParser
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     private static readonly Regex TimestampRegex = new(
         @"^(?<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+",
-        RegexOptions.Compiled);
+        RegexOptions.Compiled,
+        RegexTimeout);
 
-    private static readonly Regex ErrorRegex = new(@"\[ERROR\]|\berror\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex WarningRegex = new(@"\[WARNING\]|\bwarning\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex InfoRegex = new(@"\binfo\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex ErrorRegex = new(@"\[ERROR\]|\berror\b", RegexOptions.Compiled | RegexOptions.IgnoreCase, RegexTimeout);
+    private static readonly Regex WarningRegex = new(@"\[WARNING\]|\bwarning\b", RegexOptions.Compiled | RegexOptions.IgnoreCase, RegexTimeout);
+    private static readonly Regex InfoRegex = new(@"\binfo\b", RegexOptions.Compiled | RegexOptions.IgnoreCase, RegexTimeout);
 
     /// <summary>Reads and parses every line of the file at <paramref name="path"/>. Empty list if the file doesn't exist.</summary>
     public static IReadOnlyList<LogEntry> ParseFile(string path)

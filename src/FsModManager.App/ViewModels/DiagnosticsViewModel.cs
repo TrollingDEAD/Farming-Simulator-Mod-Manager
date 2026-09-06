@@ -368,13 +368,19 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
 
     public void Rebuild()
     {
-        // 1. OneDrive check
         OneDriveResult = EnvironmentDiagnostics.CheckDocumentsFolderSync();
-
-        // 2. Mod-based checks
         var metadataList = _modList.Mods.Select(m => m.Metadata).ToList();
 
-        // Invalid filenames
+        RebuildInvalidFilenames(metadataList);
+        RebuildOutdatedMods(metadataList);
+        RebuildDuplicateGroups(metadataList);
+        RebuildModBackups();
+        UpdateSummary();
+        NotifyRebuildCompleted();
+    }
+
+    private void RebuildInvalidFilenames(IReadOnlyList<ModMetadata> metadataList)
+    {
         InvalidFilenames.Clear();
         foreach (var mod in metadataList)
         {
@@ -395,8 +401,10 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
                     RenameModFileAsync));
             }
         }
+    }
 
-        // Outdated descVersion check (heuristic comparison)
+    private void RebuildOutdatedMods(IReadOnlyList<ModMetadata> metadataList)
+    {
         OutdatedMods.Clear();
         HighestDescVersion = GameVersionCompatibility.GetHighestDescVersion(metadataList) ?? 0;
         var outdatedAssessments = GameVersionCompatibility.FindPotentiallyOutdatedMods(
@@ -408,8 +416,10 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
         {
             OutdatedMods.Add(new OutdatedModRowViewModel(assessment));
         }
+    }
 
-        // Duplicate mod versions
+    private void RebuildDuplicateGroups(IReadOnlyList<ModMetadata> metadataList)
+    {
         DuplicateGroups.Clear();
         var duplicateGroups = DuplicateModVersionDetector.DetectDuplicates(metadataList);
         foreach (var group in duplicateGroups)
@@ -417,11 +427,11 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
             var fileInfoByCopy = group.Copies.ToDictionary(c => c, BuildModFileInfo);
 
             var cachedContent = new Dictionary<string, IReadOnlyList<StoreItemDetail>>();
-            foreach (var fileInfo in fileInfoByCopy.Values)
+            foreach (var zipPath in fileInfoByCopy.Values.Select(fileInfo => fileInfo.ZipPath))
             {
-                if (_contentScanner.TryGetCachedContent(fileInfo.ZipPath, out var cached) && cached is not null)
+                if (_contentScanner.TryGetCachedContent(zipPath, out var cached) && cached is not null)
                 {
-                    cachedContent[fileInfo.ZipPath] = cached;
+                    cachedContent[zipPath] = cached;
                 }
             }
 
@@ -449,8 +459,10 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
                 recommendation.UnclearReason,
                 candidates));
         }
+    }
 
-        // 5. Mod File Backups
+    private void RebuildModBackups()
+    {
         ModBackups.Clear();
         var backups = _modFileEditor.ListBackups(modsDirectory: _appState.ModsFolderPath);
         foreach (var backup in backups)
@@ -463,10 +475,10 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
             : $"{ModBackupRowViewModel.FormatSize(totalBackupBytes)} used by {backups.Count} backup{(backups.Count == 1 ? "" : "s")}";
         OnPropertyChanged(nameof(HasModBackups));
         OnPropertyChanged(nameof(HasNoModBackups));
+    }
 
-        // Summary
-        UpdateSummary();
-
+    private void NotifyRebuildCompleted()
+    {
         OnPropertyChanged(nameof(TotalIssuesCount));
         OnPropertyChanged(nameof(IsHealthy));
         OnPropertyChanged(nameof(HasIssues));
@@ -484,12 +496,10 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
         }
 
         var targetModPath = row.OriginalModZipPath;
-        if (string.IsNullOrWhiteSpace(targetModPath) || !File.Exists(targetModPath))
+        if ((string.IsNullOrWhiteSpace(targetModPath) || !File.Exists(targetModPath)) &&
+            !string.IsNullOrWhiteSpace(_appState.ModsFolderPath))
         {
-            if (!string.IsNullOrWhiteSpace(_appState.ModsFolderPath))
-            {
-                targetModPath = Path.Combine(_appState.ModsFolderPath, $"{row.InternalModName}.zip");
-            }
+            targetModPath = Path.Combine(_appState.ModsFolderPath, $"{row.InternalModName}.zip");
         }
 
         if (string.IsNullOrWhiteSpace(targetModPath))

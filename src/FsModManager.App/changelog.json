@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.1.1",
+    "date": "2026-09-06",
+    "entries": [
+      "Fixed: hardened GitHub release publishing by keeping its token out of shell command expansion and making the vpk tool available on Windows runners.",
+      "Fixed: safer asynchronous shutdown and mod archive editing, with bounded regular-expression matching for log and mod-source input.",
+      "Fixed: several reliability and maintenance issues across conflict resolution, diagnostics, Clean Test, mod descriptor parsing, and Windows integration."
+    ]
+  },
+  {
     "version": "1.1.0",
     "date": "2026-09-06",
     "entries": [

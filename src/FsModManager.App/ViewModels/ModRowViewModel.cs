@@ -264,7 +264,8 @@ public sealed partial class ModRowViewModel : ObservableObject
 
         try
         {
-            System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{SourceFileName}\"");
+            var explorerPath = Path.Combine(Environment.SystemDirectory, "explorer.exe");
+            System.Diagnostics.Process.Start(explorerPath, $"/select,\"{SourceFileName}\"");
         }
         catch (Exception ex)
         {

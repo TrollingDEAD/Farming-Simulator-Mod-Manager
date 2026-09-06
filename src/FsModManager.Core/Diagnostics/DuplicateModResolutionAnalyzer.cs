@@ -98,7 +98,7 @@ public static class DuplicateModResolutionAnalyzer
         }
 
         var keeper = decidedBy.Single();
-        var toRemove = duplicateGroup.Where(c => !ReferenceEquals(c, keeper) && !c.Equals(keeper)).ToList();
+        var toRemove = duplicateGroup.Where(candidate => !candidate.Equals(keeper)).ToList();
         return new DuplicateGroupRecommendation(true, keeper, toRemove, assessments, null);
     }
 

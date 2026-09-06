@@ -142,10 +142,12 @@ public sealed record KnownErrorMatch(
 /// </summary>
 public sealed class KnownErrorPatternMatcher
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
     private static readonly KnownErrorMatch Fallback = new(
         ErrorCategory.Unknown,
         "Unrecognized error/warning - no known pattern matched this line yet.",
         null);
+    private static readonly Regex TemplatePlaceholderRegex = new(@"\{(?<group>\w+)\}", RegexOptions.Compiled, RegexTimeout);
 
     private readonly IReadOnlyList<(KnownErrorPatternDefinition Definition, Regex Regex)> _compiled;
 
@@ -157,7 +159,7 @@ public sealed class KnownErrorPatternMatcher
         {
             try
             {
-                compiled.Add((definition, new Regex(definition.Pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled)));
+                compiled.Add((definition, new Regex(definition.Pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled, RegexTimeout)));
             }
             catch (ArgumentException)
             {
@@ -193,7 +195,7 @@ public sealed class KnownErrorPatternMatcher
 
     private static string ExpandExplanation(string template, Match match)
     {
-        return Regex.Replace(template, @"\{(?<group>\w+)\}", replacementMatch =>
+        return TemplatePlaceholderRegex.Replace(template, replacementMatch =>
         {
             var group = match.Groups[replacementMatch.Groups["group"].Value];
             return group.Success ? group.Value : replacementMatch.Value;

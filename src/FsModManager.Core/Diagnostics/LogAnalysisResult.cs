@@ -101,40 +101,8 @@ public sealed class LogAnalyzer
                 warningCount++;
             }
 
-            var match = _patternMatcher.Match(entry);
-            var attributedName = match.GetCapture("mod") ?? ModAttributionMatcher.Attribute(entry, installedMods);
-
-            // Graphics/VRAM errors are explicitly NOT a mod issue - never attribute these to a mod
-            // even if a path substring happens to match, so users don't waste time suspecting mods.
-            if (match.Category == ErrorCategory.GraphicsUnrelated)
-            {
-                attributedName = null;
-            }
-
-            var matchesKnownConflict = attributedName is not null && conflictedModNames.Contains(attributedName);
-            var analyzed = new AnalyzedLogEntry(
-                entry with { AttributedModInternalName = attributedName },
-                match.Category,
-                match.Explanation,
-                matchesKnownConflict,
-                match.Fixability,
-                match.PatternId,
-                match.Captures ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
-
-            if (attributedName is not null)
-            {
-                if (!groupedByMod.TryGetValue(attributedName, out var list))
-                {
-                    list = new List<AnalyzedLogEntry>();
-                    groupedByMod[attributedName] = list;
-                }
-
-                list.Add(analyzed);
-            }
-            else
-            {
-                unattributed.Add(analyzed);
-            }
+            var (attributedName, analyzed) = AnalyzeEntry(entry, installedMods, conflictedModNames);
+            AddToResultBucket(groupedByMod, unattributed, attributedName, analyzed);
         }
 
         var attributedCount = groupedByMod.Sum(kvp => kvp.Value.Count);
@@ -156,5 +124,53 @@ public sealed class LogAnalyzer
             UnattributedCount: unattributed.Count,
             ModGroups: modGroups,
             UnattributedEntries: unattributed);
+    }
+
+    private (string? AttributedName, AnalyzedLogEntry Analyzed) AnalyzeEntry(
+        LogEntry entry,
+        IReadOnlyList<ModMetadata> installedMods,
+        IReadOnlySet<string> conflictedModNames)
+    {
+        var match = _patternMatcher.Match(entry);
+        var attributedName = match.GetCapture("mod") ?? ModAttributionMatcher.Attribute(entry, installedMods);
+
+        // Graphics/VRAM errors are explicitly NOT a mod issue, even if a path substring matches.
+        if (match.Category == ErrorCategory.GraphicsUnrelated)
+        {
+            attributedName = null;
+        }
+
+        var matchesKnownConflict = attributedName is not null && conflictedModNames.Contains(attributedName);
+        var analyzed = new AnalyzedLogEntry(
+            entry with { AttributedModInternalName = attributedName },
+            match.Category,
+            match.Explanation,
+            matchesKnownConflict,
+            match.Fixability,
+            match.PatternId,
+            match.Captures ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+
+        return (attributedName, analyzed);
+    }
+
+    private static void AddToResultBucket(
+        Dictionary<string, List<AnalyzedLogEntry>> groupedByMod,
+        List<AnalyzedLogEntry> unattributed,
+        string? attributedName,
+        AnalyzedLogEntry analyzed)
+    {
+        if (attributedName is null)
+        {
+            unattributed.Add(analyzed);
+            return;
+        }
+
+        if (!groupedByMod.TryGetValue(attributedName, out var entries))
+        {
+            entries = new List<AnalyzedLogEntry>();
+            groupedByMod[attributedName] = entries;
+        }
+
+        entries.Add(analyzed);
     }
 }

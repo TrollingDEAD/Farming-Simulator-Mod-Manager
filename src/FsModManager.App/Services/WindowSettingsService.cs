@@ -73,7 +73,7 @@ public sealed class WindowSettingsService
             return false;
         }
 
-        var rect = new NativeMethods.RECT
+        var rect = new NativeMethods.NativeRect
         {
             Left = (int)placement.Left,
             Top = (int)placement.Top,
