@@ -23,7 +23,7 @@ public sealed class AppSettingsService
 
     private readonly string _settingsPath;
 
-    private sealed record SettingsModel(int? AutomaticSnapshotKeepCount);
+    private sealed record SettingsModel(int? AutomaticSnapshotKeepCount, string? LastSeenVersion);
 
     public AppSettingsService()
     {
@@ -42,6 +42,12 @@ public sealed class AppSettingsService
     /// <summary>How many automatic (non-manual) snapshots to keep per savegame after pruning.</summary>
     public int AutomaticSnapshotKeepCount { get; private set; } = DefaultAutomaticSnapshotKeepCount;
 
+    /// <summary>
+    /// The app version last seen on a previous launch, used to detect "the app was just updated"
+    /// so a what's-new-since-your-last-version view can be shown. Null on a brand-new install.
+    /// </summary>
+    public string? LastSeenVersion { get; private set; }
+
     public void Load()
     {
         try
@@ -56,10 +62,25 @@ public sealed class AppSettingsService
             {
                 AutomaticSnapshotKeepCount = ClampKeepCount(keepCount);
             }
+
+            LastSeenVersion = model?.LastSeenVersion;
         }
         catch (Exception)
         {
             // Malformed/unreadable settings file — keep defaults rather than failing startup.
+        }
+    }
+
+    public void SaveLastSeenVersion(string version)
+    {
+        LastSeenVersion = version;
+        try
+        {
+            File.WriteAllText(_settingsPath, JsonSerializer.Serialize(new SettingsModel(AutomaticSnapshotKeepCount, LastSeenVersion), JsonOptions));
+        }
+        catch (Exception)
+        {
+            // A settings write failure must never break the app — retried on the next launch.
         }
     }
 
@@ -68,7 +89,7 @@ public sealed class AppSettingsService
         AutomaticSnapshotKeepCount = ClampKeepCount(keepCount);
         try
         {
-            File.WriteAllText(_settingsPath, JsonSerializer.Serialize(new SettingsModel(AutomaticSnapshotKeepCount), JsonOptions));
+            File.WriteAllText(_settingsPath, JsonSerializer.Serialize(new SettingsModel(AutomaticSnapshotKeepCount, LastSeenVersion), JsonOptions));
         }
         catch (Exception)
         {

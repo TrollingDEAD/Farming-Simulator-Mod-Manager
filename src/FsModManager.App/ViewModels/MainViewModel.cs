@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FsModManager.App.Services;
@@ -22,6 +23,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly LogAnalyzerViewModel _logAnalyzer;
     private readonly DiagnosticsViewModel _diagnostics;
     private readonly CleanTestWizardViewModel _cleanTest;
+    private readonly SettingsViewModel _settings;
 
     public MainViewModel(
         NavigationService navigation,
@@ -33,7 +35,8 @@ public sealed partial class MainViewModel : ObservableObject
         ConflictsViewModel conflicts,
         LogAnalyzerViewModel logAnalyzer,
         DiagnosticsViewModel diagnostics,
-        CleanTestWizardViewModel cleanTest)
+        CleanTestWizardViewModel cleanTest,
+        SettingsViewModel settings)
     {
         _navigation = navigation;
         _notifications = notifications;
@@ -45,6 +48,7 @@ public sealed partial class MainViewModel : ObservableObject
         _logAnalyzer = logAnalyzer;
         _diagnostics = diagnostics;
         _cleanTest = cleanTest;
+        _settings = settings;
 
         _currentViewModel = _installSelection;
         _navigation.PropertyChanged += OnNavigationPropertyChanged;
@@ -74,6 +78,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public bool IsCleanTestActive => _navigation.CurrentView == AppView.CleanTest;
 
+    public bool IsSettingsActive => _navigation.CurrentView == AppView.Settings;
+
     [RelayCommand]
     private void Navigate(AppView view) => _navigation.NavigateTo(view);
 
@@ -102,6 +108,7 @@ public sealed partial class MainViewModel : ObservableObject
             AppView.LogAnalyzer => _logAnalyzer,
             AppView.Diagnostics => _diagnostics,
             AppView.CleanTest => _cleanTest,
+            AppView.Settings => _settings,
             _ => _installSelection,
         };
 
@@ -113,6 +120,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsLogAnalyzerActive));
         OnPropertyChanged(nameof(IsDiagnosticsActive));
         OnPropertyChanged(nameof(IsCleanTestActive));
+        OnPropertyChanged(nameof(IsSettingsActive));
 
         _ = _navigation.CurrentView switch
         {
@@ -123,6 +131,7 @@ public sealed partial class MainViewModel : ObservableObject
             AppView.LogAnalyzer => _logAnalyzer.OnNavigatedToAsync(),
             AppView.Diagnostics => _diagnostics.OnNavigatedToAsync(),
             AppView.CleanTest => _cleanTest.OnNavigatedToAsync(),
+            AppView.Settings => Task.CompletedTask,
             _ => _installSelection.OnNavigatedToAsync(),
         };
     }

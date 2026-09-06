@@ -10,6 +10,23 @@
     <AssemblyName>FsModManager.App</AssemblyName>
     <ApplicationIcon />
     <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!--
+      Single source of truth for the app's version. Do not duplicate this number anywhere else
+      (read it at runtime via FsModManager.App.Services.AppVersionInfo.Current instead).
+      Starting point: 1.0.0 - chosen because every major feature area (install detection, mod
+      list/filtering, conflict detection incl. object-level, custom UI shell, load order, log
+      analyzer, diagnostics, savegame backups, multiplayer manifest sync, clean test mode,
+      conflict/log auto-fixing) is already built, tested and considered feature-complete for a
+      first release; there is no prior tagged/shipped version to stay compatible with, so there's
+      no reason to sit in a pre-1.0 range. See CHANGELOG.md for what's included.
+      Semantic Versioning (semver.org) going forward:
+        MAJOR - breaking change to how user data is stored/read (savegame backups, manifests,
+                settings files, etc.) that could break compatibility with a previous version's saved state.
+        MINOR - new user-facing feature, backward compatible.
+        PATCH - bug fix only, no new feature/behavior.
+    -->
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +40,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FsModManager.Core\FsModManager.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="changelog.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

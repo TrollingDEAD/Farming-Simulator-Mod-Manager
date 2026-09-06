@@ -30,6 +30,10 @@ public sealed partial class ModFileEditor : IModFileEditor
     private readonly IModContentScanner? _contentScanner;
     private readonly string? _backupsRootOverride;
 
+    // Count of mid-flight edit/revert operations (Interlocked-guarded) - backs IsEditInProgress,
+    // which the self-update flow checks before applying an update + restarting the app.
+    private int _activeEditCount;
+
     public ModFileEditor(
         IGameProcessChecker gameProcessChecker,
         IModDescParser modDescParser,
@@ -41,6 +45,9 @@ public sealed partial class ModFileEditor : IModFileEditor
         _contentScanner = contentScanner;
         _backupsRootOverride = backupsRootOverride;
     }
+
+    /// <inheritdoc />
+    public bool IsEditInProgress => Volatile.Read(ref _activeEditCount) > 0;
 
     /// <inheritdoc />
     public Task<EditResult> ApplyEditAsync(
@@ -55,6 +62,23 @@ public sealed partial class ModFileEditor : IModFileEditor
 
     /// <inheritdoc />
     public async Task<EditResult> ApplyEditBatchAsync(
+        string modZipPath,
+        IReadOnlyList<ModFileEdit> edits,
+        string reason = "auto-fix",
+        CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref _activeEditCount);
+        try
+        {
+            return await ApplyEditBatchCoreAsync(modZipPath, edits, reason, cancellationToken);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _activeEditCount);
+        }
+    }
+
+    private async Task<EditResult> ApplyEditBatchCoreAsync(
         string modZipPath,
         IReadOnlyList<ModFileEdit> edits,
         string reason = "auto-fix",
@@ -265,6 +289,22 @@ public sealed partial class ModFileEditor : IModFileEditor
 
     /// <inheritdoc />
     public async Task<EditResult> RevertToBackupAsync(
+        string modZipPath,
+        string backupPath,
+        CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref _activeEditCount);
+        try
+        {
+            return await RevertToBackupCoreAsync(modZipPath, backupPath, cancellationToken);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _activeEditCount);
+        }
+    }
+
+    private async Task<EditResult> RevertToBackupCoreAsync(
         string modZipPath,
         string backupPath,
         CancellationToken cancellationToken = default)

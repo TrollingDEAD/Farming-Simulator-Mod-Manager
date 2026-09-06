@@ -16,6 +16,7 @@ using FsModManager.Core.ModScanning.Repository;
 using FsModManager.Core.Multiplayer;
 using FsModManager.Core.Resolution;
 using FsModManager.Core.Savegames;
+using FsModManager.Core.Updates;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,6 +31,10 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // Velopack must be the literal first thing that runs: it may need to intercept this
+        // process for install/update/uninstall hooks, and can exit it before startup continues.
+        Velopack.VelopackApp.Build().Run();
+
         base.OnStartup(e);
 
         // Startup can show dialogs (e.g. the leftover Clean Test session prompt below) before
@@ -102,6 +107,10 @@ public partial class App : Application
                 services.AddSingleton<ManifestSerializer>();
                 services.AddSingleton<ManifestComparer>();
 
+                // --- Core: self-updates (Velopack over this repo's GitHub Releases) ---
+                services.AddSingleton<IAppUpdateGateway>(_ => new VelopackUpdateGateway());
+                services.AddSingleton<IAppUpdateService, AppUpdateService>();
+
                 // --- Core: persistence (used by future download/source features) ---
                 services.AddScoped<IModRepository, ModRepository>();
 
@@ -111,6 +120,8 @@ public partial class App : Application
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<WindowSettingsService>();
                 services.AddSingleton<AppSettingsService>();
+                services.AddSingleton<ChangelogService>();
+                services.AddSingleton<AppUpdateCoordinator>();
 
                 // Scoped (not Singleton): resolved from a single long-lived scope below rather than
                 // the root container, so scoped services like IModRepository/DbContext stay consumable.
@@ -154,6 +165,40 @@ public partial class App : Application
         var mainWindow = _appScope.ServiceProvider.GetRequiredService<MainWindow>();
         ShutdownMode = ShutdownMode.OnLastWindowClose;
         mainWindow.Show();
+
+        // Runs after MainWindow exists so a "what's new" dialog has a safe Owner (see the
+        // Owner-capture lesson on AppDialog/ChangelogDialog for why this must not run earlier).
+        ShowWhatsNewIfUpdated();
+
+        // Once-per-session background self-update check. Fire-and-forget on purpose: it must not
+        // delay startup, and the coordinator catches every failure internally. When an update is
+        // available the user is prompted via a banner - nothing downloads or installs on its own.
+        _ = _appScope.ServiceProvider.GetRequiredService<AppUpdateCoordinator>().CheckForUpdateOnStartupAsync();
+    }
+
+    private void ShowWhatsNewIfUpdated()
+    {
+        if (_appScope is null)
+        {
+            return;
+        }
+
+        var appSettings = _appScope.ServiceProvider.GetRequiredService<AppSettingsService>();
+        var currentVersion = AppVersionInfo.Current;
+        var previousVersion = appSettings.LastSeenVersion;
+
+        if (!string.IsNullOrEmpty(previousVersion) &&
+            !string.Equals(previousVersion, currentVersion, StringComparison.OrdinalIgnoreCase))
+        {
+            var changelog = _appScope.ServiceProvider.GetRequiredService<ChangelogService>();
+            var newReleases = changelog.GetReleasesSince(previousVersion);
+            if (newReleases.Count > 0)
+            {
+                Views.ChangelogDialog.Show($"What's new in v{currentVersion}", newReleases);
+            }
+        }
+
+        appSettings.SaveLastSeenVersion(currentVersion);
     }
 
     private async Task CheckForLeftoverCleanTestSessionAsync()

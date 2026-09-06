@@ -1,0 +1,97 @@
+name: Release
+
+# Triggered by pushing a version tag (e.g. `v1.2.0`). This is the exact feed the app's
+# self-update feature (Velopack + GithubSource, see VelopackUpdateGateway) checks against, so
+# every tag pushed here becomes a real update your users can receive.
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  # Must match whatever VelopackApp.Build() in App.xaml.cs is/becomes configured with (currently
+  # unset -> Velopack falls back to its own default derived from the entry assembly), and stay
+  # the same across releases so update checks keep resolving to the same package family.
+  PACK_ID: FsModManager
+  MAIN_EXE: FsModManager.App.exe
+  CSPROJ_PATH: src/FsModManager.App/FsModManager.App.csproj
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from csproj
+        id: version
+        shell: bash
+        run: |
+          echo "version=$(grep -oE '<Version>[^<]+' "$CSPROJ_PATH" | sed 's/<Version>//')" >> $GITHUB_OUTPUT
+
+      - name: Verify csproj version matches pushed tag
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          csproj_version="${{ steps.version.outputs.version }}"
+          if [ "$tag_version" != "$csproj_version" ]; then
+            echo "::error::Pushed tag is 'v$tag_version' but $CSPROJ_PATH has <Version>$csproj_version</Version>. Bump the csproj version and re-tag before releasing."
+            exit 1
+          fi
+          echo "Tag v$tag_version matches csproj version $csproj_version."
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore FsModManager.sln
+
+      - name: Test
+        run: dotnet test FsModManager.sln --configuration Release --no-restore
+
+      - name: Publish self-contained win-x64 build
+        run: dotnet publish "$env:CSPROJ_PATH" -c Release -o publish -r win-x64 --self-contained true
+
+      - name: Install vpk CLI
+        run: dotnet tool install -g vpk
+
+      - name: Pack Velopack release
+        shell: bash
+        run: |
+          vpk pack \
+            --packId "$PACK_ID" \
+            --packVersion "${{ steps.version.outputs.version }}" \
+            --packDir publish \
+            --mainExe "$MAIN_EXE" \
+            --packTitle "FS Mod Manager"
+
+      - name: Upload release to GitHub
+        shell: bash
+        run: |
+          # Tag-name convention: a `v1.2.0-beta`-style tag (contains a hyphen) publishes as a
+          # prerelease; a plain `v1.2.0` tag publishes as a full release. Keeps the trigger simple
+          # (no extra workflow_dispatch input) while still allowing beta releases when needed.
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            pre=true
+          else
+            pre=false
+          fi
+
+          vpk upload github \
+            --repoUrl "https://github.com/${{ github.repository }}" \
+            --token "${{ secrets.GITHUB_TOKEN }}" \
+            --publish true \
+            --pre "$pre" \
+            --tag "$GITHUB_REF_NAME"
+
+      - name: Print release URL
+        shell: bash
+        run: |
+          {
+            echo "### :rocket: Release published"
+            echo ""
+            echo "**Version:** ${{ steps.version.outputs.version }}"
+            echo "**Release:** https://github.com/${{ github.repository }}/releases/tag/$GITHUB_REF_NAME"
+          } >> "$GITHUB_STEP_SUMMARY"

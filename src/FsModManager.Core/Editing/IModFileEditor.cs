@@ -11,6 +11,13 @@ namespace FsModManager.Core.Editing;
 public interface IModFileEditor
 {
     /// <summary>
+    /// True while at least one edit/revert is mid-flight (backup → edit → validate → atomic swap).
+    /// Callers about to do something disruptive to the whole app (e.g. a self-update restart) must
+    /// defer while this is set, rather than tearing the process down mid-edit.
+    /// </summary>
+    bool IsEditInProgress { get; }
+
+    /// <summary>
     /// Applies an atomic edit to a mod zip file after creating a backup and validating the result.
     /// </summary>
     Task<EditResult> ApplyEditAsync(

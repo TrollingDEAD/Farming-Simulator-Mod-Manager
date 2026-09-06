@@ -15,5 +15,20 @@
                    TextWrapping="Wrap">
             A full savegame snapshot is taken before every load-order save. Older automatic snapshots beyond this count are deleted; backups you create manually are always kept.
         </TextBlock>
+
+        <TextBlock Text="About" FontWeight="Bold" Margin="0,20,0,4" />
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding VersionDisplay}" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <Button Content="View changelog" Command="{Binding ViewChangelogCommand}" />
+            <Button Content="Check for updates now"
+                    Command="{Binding CheckForUpdatesCommand}"
+                    Margin="8,0,0,0" />
+        </StackPanel>
+        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                   FontSize="11"
+                   TextWrapping="Wrap"
+                   Margin="0,6,0,0">
+            The app also checks for updates on its own once per startup and asks before downloading or installing anything. Self-update only works in installed builds - not when running from source.
+        </TextBlock>
     </StackPanel>
 </UserControl>

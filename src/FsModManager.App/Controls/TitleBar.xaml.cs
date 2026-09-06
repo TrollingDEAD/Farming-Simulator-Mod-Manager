@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Shell;
+using FsModManager.App.Services;
 
 namespace FsModManager.App.Controls;
 
@@ -16,6 +17,7 @@ public partial class TitleBar : System.Windows.Controls.UserControl
     public TitleBar()
     {
         InitializeComponent();
+        VersionText.Text = $"v{AppVersionInfo.Current}";
         Loaded += OnLoaded;
     }
 

@@ -1,0 +1,29 @@
+[
+  {
+    "version": "1.1.0",
+    "date": "2026-09-06",
+    "entries": [
+      "Added: self-updates via Velopack from GitHub Releases - once-per-session startup check, an actionable banner prompt (never a blocking dialog) with the new version and a short changelog summary, and an explicit \"Update now\" before anything downloads or installs.",
+      "Added: download progress shown live in the banner, then apply-and-restart on confirmation; manual \"Check for updates now\" in Settings -> About.",
+      "Added: update checks no-op on non-installed builds (dotnet run / raw publish), and applying an update is deferred while a Clean Test session or mod-file edit is in progress."
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-09-06",
+    "entries": [
+      "Added: game installation detection (Steam, Epic, GOG, manual folder browse) and load-order/version reading.",
+      "Added: mod list scanning with search, category filters, multiplayer/crossplay indicators, and per-mod content expansion (vehicles/placeables/specs).",
+      "Added: conflict detection - duplicate internal names, duplicate store items, duplicate custom types, duplicate specialization names, Lua global function collisions, and shared-data-file overrides - plus a dedicated Conflicts overview tab.",
+      "Added: custom application shell - borderless window chrome, dark theme, sidebar navigation, dismissible notification banners, per-monitor DPI-aware resizing/maximizing.",
+      "Added: load order management per savegame with drag-and-drop reordering and a running-game guard before saving.",
+      "Added: Log Analyzer - parses the game's log.txt, attributes errors/warnings to mods, matches known error patterns, and flags entries correlated with detected conflicts.",
+      "Added: Diagnostics / health checks - OneDrive sync detection, mod filename validation, descVersion compatibility heuristic, and duplicate/stale mod version detection with a guided keeper recommendation.",
+      "Added: savegame backups - automatic and manual snapshots before load-order changes, with configurable retention and one-click restore.",
+      "Added: multiplayer manifest sync - export a signed mod-list manifest and compare it against a friend's to spot missing/extra/mismatched mods.",
+      "Added: Clean Test Mode - move mods out (and optionally clear the shader cache) to test a clean setup, plus a guided bisection wizard to narrow down a problem mod.",
+      "Added: conflict and log auto-fixing - automatic storeItem rename resolution and shared-data-file merge fixes for supported conflict types.",
+      "Added: versioning and changelog system, with an in-app About/changelog viewer."
+    ]
+  }
+]

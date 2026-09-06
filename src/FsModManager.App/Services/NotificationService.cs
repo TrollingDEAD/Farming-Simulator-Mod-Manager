@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace FsModManager.App.Services;
 
@@ -11,17 +14,32 @@ public enum NotificationKind
     Error,
 }
 
-public sealed class AppNotification
+/// <summary>
+/// One banner in the shell. The message is mutable so a caller can update a visible banner
+/// in place (e.g. download progress). A banner can carry one action button
+/// (<see cref="ActionLabel"/>/<see cref="ActionCommand"/>) — banners with an action never
+/// auto-dismiss, so a choice is never silently taken away from the user.
+/// </summary>
+public sealed partial class AppNotification : ObservableObject
 {
-    public AppNotification(string message, NotificationKind kind)
+    public AppNotification(string message, NotificationKind kind, string? actionLabel = null, Action? action = null)
     {
-        Message = message;
+        _message = message;
         Kind = kind;
+        ActionLabel = actionLabel;
+        ActionCommand = action is null ? null : new RelayCommand(action);
     }
 
-    public string Message { get; }
+    [ObservableProperty]
+    private string _message;
 
     public NotificationKind Kind { get; }
+
+    public string? ActionLabel { get; }
+
+    public ICommand? ActionCommand { get; }
+
+    public bool HasAction => ActionCommand is not null;
 }
 
 /// <summary>Collects user-facing messages shown as dismissible banners in the shell.</summary>
@@ -34,6 +52,14 @@ public interface INotificationService
     void Warning(string message);
 
     void Error(string message);
+
+    /// <summary>
+    /// Shows a banner and returns it, so the caller can update
+    /// <see cref="AppNotification.Message"/> in place later (e.g. progress). When
+    /// <paramref name="actionLabel"/>/<paramref name="action"/> are supplied the banner shows an
+    /// action button and does NOT auto-dismiss.
+    /// </summary>
+    AppNotification Show(string message, NotificationKind kind, string? actionLabel = null, Action? action = null);
 
     void Dismiss(AppNotification notification);
 }
@@ -49,16 +75,15 @@ public sealed class NotificationService : INotificationService
 
     public ObservableCollection<AppNotification> Notifications { get; } = new();
 
-    public void Info(string message) => Show(new AppNotification(message, NotificationKind.Info));
+    public void Info(string message) => Show(message, NotificationKind.Info);
 
-    public void Warning(string message) => Show(new AppNotification(message, NotificationKind.Warning));
+    public void Warning(string message) => Show(message, NotificationKind.Warning);
 
-    public void Error(string message) => Show(new AppNotification(message, NotificationKind.Error));
+    public void Error(string message) => Show(message, NotificationKind.Error);
 
-    public void Dismiss(AppNotification notification) => RunOnUi(() => Notifications.Remove(notification));
-
-    private void Show(AppNotification notification)
+    public AppNotification Show(string message, NotificationKind kind, string? actionLabel = null, Action? action = null)
     {
+        var notification = new AppNotification(message, kind, actionLabel, action);
         RunOnUi(() =>
         {
             while (Notifications.Count >= MaxVisible)
@@ -68,7 +93,9 @@ public sealed class NotificationService : INotificationService
 
             Notifications.Add(notification);
 
-            if (notification.Kind != NotificationKind.Error)
+            // Errors and actionable banners stay until explicitly dismissed/acted on —
+            // auto-dismissing an action would silently take the choice away from the user.
+            if (notification.Kind != NotificationKind.Error && !notification.HasAction)
             {
                 var timer = new DispatcherTimer { Interval = AutoDismissDelay };
                 timer.Tick += (_, _) =>
@@ -79,7 +106,10 @@ public sealed class NotificationService : INotificationService
                 timer.Start();
             }
         });
+        return notification;
     }
+
+    public void Dismiss(AppNotification notification) => RunOnUi(() => Notifications.Remove(notification));
 
     private static void RunOnUi(Action action)
     {

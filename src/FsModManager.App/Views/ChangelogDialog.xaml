@@ -1,0 +1,73 @@
+<Window x:Class="FsModManager.App.Views.ChangelogDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Width="560"
+        Height="600"
+        Background="{StaticResource SurfaceBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        BorderBrush="{StaticResource BorderBrush}"
+        BorderThickness="1"
+        ShowInTaskbar="False">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="HeaderText"
+                   Grid.Row="0"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,4" />
+
+        <TextBlock x:Name="EmptyText"
+                   Grid.Row="1"
+                   Text="No changelog entries to show."
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Visibility="Collapsed"
+                   VerticalAlignment="Top"
+                   Margin="0,12,0,0" />
+
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      Margin="0,8,0,0">
+            <ItemsControl x:Name="ReleasesList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,8,0,16">
+                            <TextBlock FontWeight="Bold" FontSize="14">
+                                <Run Text="{Binding Version}" />
+                                <Run Text=" — " />
+                                <Run Text="{Binding Date}"
+                                     FontWeight="Normal"
+                                     FontSize="12"
+                                     Foreground="{StaticResource TextSecondaryBrush}" />
+                            </TextBlock>
+                            <ItemsControl ItemsSource="{Binding Entries}" Margin="4,6,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock TextWrapping="Wrap" Margin="0,2,0,0" FontSize="12">
+                                            <Run Text="•  " />
+                                            <Run Text="{Binding Mode=OneWay}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Button Grid.Row="2"
+                Content="Close"
+                Style="{StaticResource AccentButtonStyle}"
+                HorizontalAlignment="Right"
+                MinWidth="90"
+                Margin="0,16,0,0"
+                Click="OnCloseClick" />
+    </Grid>
+</Window>

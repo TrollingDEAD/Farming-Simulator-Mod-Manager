@@ -12,6 +12,7 @@ public enum AppView
     LogAnalyzer,
     Diagnostics,
     CleanTest,
+    Settings,
 }
 
 /// <summary>Shared navigation state; the shell listens to <see cref="CurrentView"/> and swaps the content.</summary>
